@@ -1,0 +1,227 @@
+// Dados mockados para demonstração
+
+import type { Workout, Exercise, WeightEntry, UserProfile, AppSettings } from '@/types';
+import { v4 as uuidv4 } from 'uuid';
+
+// Exercícios predefinidos
+export const predefinedExercises: Omit<Exercise, 'id'>[] = [
+  // Peito
+  { name: 'Supino Reto', muscleGroup: 'peito', sets: 4, reps: '8-12', restTime: 90 },
+  { name: 'Supino Inclinado', muscleGroup: 'peito', sets: 3, reps: '10-12', restTime: 90 },
+  { name: 'Crucifixo', muscleGroup: 'peito', sets: 3, reps: '12-15', restTime: 60 },
+  { name: 'Flexão', muscleGroup: 'peito', sets: 3, reps: '15-20', restTime: 60 },
+  
+  // Costas
+  { name: 'Puxada Frontal', muscleGroup: 'costas', sets: 4, reps: '8-12', restTime: 90 },
+  { name: 'Remada Curvada', muscleGroup: 'costas', sets: 4, reps: '8-12', restTime: 90 },
+  { name: 'Remada Unilateral', muscleGroup: 'costas', sets: 3, reps: '10-12', restTime: 60 },
+  { name: 'Levantamento Terra', muscleGroup: 'costas', sets: 3, reps: '6-10', restTime: 120 },
+  
+  // Ombros
+  { name: 'Desenvolvimento com Halteres', muscleGroup: 'ombros', sets: 4, reps: '8-12', restTime: 90 },
+  { name: 'Elevação Lateral', muscleGroup: 'ombros', sets: 4, reps: '12-15', restTime: 60 },
+  { name: 'Elevação Frontal', muscleGroup: 'ombros', sets: 3, reps: '12-15', restTime: 60 },
+  { name: 'Desenvolvimento Arnold', muscleGroup: 'ombros', sets: 3, reps: '10-12', restTime: 90 },
+  
+  // Bíceps
+  { name: 'Rosca Direta', muscleGroup: 'biceps', sets: 4, reps: '10-12', restTime: 60 },
+  { name: 'Rosca Alternada', muscleGroup: 'biceps', sets: 3, reps: '10-12', restTime: 60 },
+  { name: 'Rosca Martelo', muscleGroup: 'biceps', sets: 3, reps: '12-15', restTime: 60 },
+  { name: 'Rosca Scott', muscleGroup: 'biceps', sets: 3, reps: '10-12', restTime: 60 },
+  
+  // Tríceps
+  { name: 'Tríceps Testa', muscleGroup: 'triceps', sets: 4, reps: '10-12', restTime: 60 },
+  { name: 'Tríceps Corda', muscleGroup: 'triceps', sets: 4, reps: '12-15', restTime: 60 },
+  { name: 'Mergulho no Banco', muscleGroup: 'triceps', sets: 3, reps: '12-15', restTime: 60 },
+  { name: 'Extensão de Tríceps', muscleGroup: 'triceps', sets: 3, reps: '10-12', restTime: 60 },
+  
+  // Pernas
+  { name: 'Agachamento', muscleGroup: 'pernas', sets: 4, reps: '8-12', restTime: 120 },
+  { name: 'Leg Press', muscleGroup: 'pernas', sets: 4, reps: '10-15', restTime: 120 },
+  { name: 'Cadeira Extensora', muscleGroup: 'pernas', sets: 3, reps: '12-15', restTime: 90 },
+  { name: 'Mesa Flexora', muscleGroup: 'pernas', sets: 4, reps: '10-12', restTime: 90 },
+  { name: 'Cadeira Abdutora', muscleGroup: 'pernas', sets: 3, reps: '15-20', restTime: 60 },
+  { name: 'Cadeira Adutora', muscleGroup: 'pernas', sets: 3, reps: '15-20', restTime: 60 },
+  
+  // Glúteos
+  { name: 'Elevação Pélvica', muscleGroup: 'gluteos', sets: 4, reps: '12-15', restTime: 90 },
+  { name: 'Agachamento Sumô', muscleGroup: 'gluteos', sets: 3, reps: '12-15', restTime: 90 },
+  { name: 'Afundo', muscleGroup: 'gluteos', sets: 3, reps: '10-12', restTime: 90 },
+  
+  // Panturrilha
+  { name: 'Elevação de Panturrilha em Pé', muscleGroup: 'panturrilha', sets: 4, reps: '15-20', restTime: 60 },
+  { name: 'Elevação de Panturrilha Sentado', muscleGroup: 'panturrilha', sets: 3, reps: '15-20', restTime: 60 },
+  
+  // Abdômen
+  { name: 'Crunch', muscleGroup: 'abdomen', sets: 4, reps: '20-25', restTime: 45 },
+  { name: 'Prancha', muscleGroup: 'abdomen', sets: 3, reps: '30-60s', restTime: 60 },
+  { name: 'Elevação de Pernas', muscleGroup: 'abdomen', sets: 3, reps: '15-20', restTime: 45 },
+  { name: 'Russian Twist', muscleGroup: 'abdomen', sets: 3, reps: '20-30', restTime: 45 },
+  
+  // Cardio
+  { name: 'Corrida na Esteira', muscleGroup: 'cardio', sets: 1, reps: '20-30min', restTime: 0 },
+  { name: 'Bicicleta Ergométrica', muscleGroup: 'cardio', sets: 1, reps: '20-30min', restTime: 0 },
+  { name: 'Elíptico', muscleGroup: 'cardio', sets: 1, reps: '20-30min', restTime: 0 },
+  { name: 'Burpees', muscleGroup: 'cardio', sets: 3, reps: '10-15', restTime: 60 }
+];
+
+// Treinos de exemplo
+export const sampleWorkouts: Workout[] = [
+  {
+    id: uuidv4(),
+    name: 'Peito e Tríceps',
+    muscleGroup: 'peito',
+    notes: 'Foco em hipertrofia com cargas moderadas',
+    exercises: [
+      { ...predefinedExercises[0], id: uuidv4(), completed: false },
+      { ...predefinedExercises[1], id: uuidv4(), completed: false },
+      { ...predefinedExercises[2], id: uuidv4(), completed: false },
+      { ...predefinedExercises[16], id: uuidv4(), completed: false },
+      { ...predefinedExercises[17], id: uuidv4(), completed: false }
+    ],
+    status: 'nao_iniciado'
+  },
+  {
+    id: uuidv4(),
+    name: 'Costas e Bíceps',
+    muscleGroup: 'costas',
+    notes: 'Puxadas com foco na largura das costas',
+    exercises: [
+      { ...predefinedExercises[4], id: uuidv4(), completed: false },
+      { ...predefinedExercises[5], id: uuidv4(), completed: false },
+      { ...predefinedExercises[6], id: uuidv4(), completed: false },
+      { ...predefinedExercises[12], id: uuidv4(), completed: false },
+      { ...predefinedExercises[13], id: uuidv4(), completed: false }
+    ],
+    status: 'nao_iniciado'
+  },
+  {
+    id: uuidv4(),
+    name: 'Ombros e Abdômen',
+    muscleGroup: 'ombros',
+    notes: 'Desenvolvimento com cargas progressivas',
+    exercises: [
+      { ...predefinedExercises[8], id: uuidv4(), completed: false },
+      { ...predefinedExercises[9], id: uuidv4(), completed: false },
+      { ...predefinedExercises[10], id: uuidv4(), completed: false },
+      { ...predefinedExercises[32], id: uuidv4(), completed: false },
+      { ...predefinedExercises[33], id: uuidv4(), completed: false }
+    ],
+    status: 'nao_iniciado'
+  },
+  {
+    id: uuidv4(),
+    name: 'Pernas Completo',
+    muscleGroup: 'pernas',
+    notes: 'Treino intenso de membros inferiores',
+    exercises: [
+      { ...predefinedExercises[20], id: uuidv4(), completed: false },
+      { ...predefinedExercises[21], id: uuidv4(), completed: false },
+      { ...predefinedExercises[22], id: uuidv4(), completed: false },
+      { ...predefinedExercises[23], id: uuidv4(), completed: false },
+      { ...predefinedExercises[38], id: uuidv4(), completed: false }
+    ],
+    status: 'nao_iniciado'
+  },
+  {
+    id: uuidv4(),
+    name: 'Full Body',
+    muscleGroup: 'full_body',
+    notes: 'Treino completo para todo o corpo',
+    exercises: [
+      { ...predefinedExercises[20], id: uuidv4(), completed: false },
+      { ...predefinedExercises[0], id: uuidv4(), completed: false },
+      { ...predefinedExercises[4], id: uuidv4(), completed: false },
+      { ...predefinedExercises[8], id: uuidv4(), completed: false },
+      { ...predefinedExercises[32], id: uuidv4(), completed: false }
+    ],
+    status: 'nao_iniciado'
+  },
+  {
+    id: uuidv4(),
+    name: 'Cardio e Core',
+    muscleGroup: 'cardio',
+    notes: 'Queima de gordura e fortalecimento do core',
+    exercises: [
+      { ...predefinedExercises[40], id: uuidv4(), completed: false },
+      { ...predefinedExercises[32], id: uuidv4(), completed: false },
+      { ...predefinedExercises[33], id: uuidv4(), completed: false },
+      { ...predefinedExercises[34], id: uuidv4(), completed: false },
+      { ...predefinedExercises[35], id: uuidv4(), completed: false }
+    ],
+    status: 'nao_iniciado'
+  }
+];
+
+// Treinos semanais de exemplo
+export const sampleWeeklyWorkouts: Record<string, Workout | null> = {
+  segunda: sampleWorkouts[0], // Peito e Tríceps
+  terca: sampleWorkouts[1],   // Costas e Bíceps
+  quarta: null,               // Descanso
+  quinta: sampleWorkouts[2],  // Ombros e Abdômen
+  sexta: sampleWorkouts[3],   // Pernas
+  sabado: sampleWorkouts[5],  // Cardio e Core
+  domingo: null               // Descanso
+};
+
+// Histórico de peso de exemplo
+export const sampleWeightHistory: WeightEntry[] = [
+  { id: uuidv4(), date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), weight: 75.5, notes: 'Início do acompanhamento' },
+  { id: uuidv4(), date: new Date(Date.now() - 23 * 24 * 60 * 60 * 1000).toISOString(), weight: 75.0 },
+  { id: uuidv4(), date: new Date(Date.now() - 16 * 24 * 60 * 60 * 1000).toISOString(), weight: 74.2 },
+  { id: uuidv4(), date: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString(), weight: 73.8 },
+  { id: uuidv4(), date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), weight: 73.0, notes: 'Progredindo bem!' }
+];
+
+// Perfil de exemplo
+export const sampleProfile: UserProfile = {
+  name: 'João Fitness',
+  goal: 'hipertrofia',
+  gender: 'masculino',
+  age: 28,
+  height: 178,
+  initialWeight: 73.0,
+  targetWeight: 75.0
+};
+
+// Configurações de exemplo
+export const sampleSettings: AppSettings = {
+  theme: 'system',
+  notifications: true,
+  soundEffects: false,
+  language: 'pt-BR'
+};
+
+// Função para inicializar dados de exemplo
+export function initializeMockData() {
+  try {
+    const hasData = localStorage.getItem('GiGaGym_profile') !== null;
+
+    if (!hasData) {
+      localStorage.setItem('GiGaGym_profile', JSON.stringify(sampleProfile));
+      localStorage.setItem('GiGaGym_settings', JSON.stringify(sampleSettings));
+      localStorage.setItem('GiGaGym_weekly_workouts', JSON.stringify(sampleWeeklyWorkouts));
+      localStorage.setItem('GiGaGym_weight_history', JSON.stringify(sampleWeightHistory));
+      localStorage.setItem('GiGaGym_custom_exercises', JSON.stringify([]));
+      localStorage.setItem('GiGaGym_workout_history', JSON.stringify([]));
+      localStorage.setItem(
+        'GiGaGym_body_metrics',
+        JSON.stringify({
+          currentWeight: 73.0,
+          height: 178,
+          imc: 23.0,
+          lastUpdated: new Date().toISOString(),
+        })
+      );
+
+      console.log('Dados de exemplo inicializados!');
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    console.warn('Nao foi possivel inicializar mock data no localStorage:', error);
+    return false;
+  }
+}
+

@@ -1,0 +1,20 @@
+/* App scoped adjustments */
+
+.app-shell {
+  min-height: 100dvh;
+  position: relative;
+}
+
+.app-shell::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 22%);
+  z-index: 0;
+}
+
+.app-content-layer {
+  position: relative;
+  z-index: 1;
+}

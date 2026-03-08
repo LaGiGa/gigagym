@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="pt-BR" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    
+    <!-- Viewport otimizado para mobile e iOS -->
+    <meta 
+      name="viewport" 
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    
+    <!-- Tema e cores -->
+    <meta name="theme-color" content="#0f0f0f" />
+    <meta name="background-color" content="#0f0f0f" />
+    
+    <!-- Descrição -->
+    <meta 
+      name="description" 
+      content="GiGaGym PWA - Seu companheiro de treinos. Organize seus treinos semanais, acompanhe seu progresso e alcance seus objetivos fitness."
+    />
+    
+    <!-- Keywords -->
+    <meta 
+      name="keywords" 
+      content="fitness, academia, treino, exercício, musculação, saúde, bem-estar, PWA"
+    />
+    
+    <!-- Autor -->
+    <meta name="author" content="GiGaGym" />
+    
+    <!-- iOS specific -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="GiGaGym" />
+    
+    <!-- iOS Icons -->
+    <link rel="apple-touch-icon" href="/icons/icon-72x72.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-152x152.png" />
+    
+    <!-- iOS Splash Screens -->
+    <link 
+      rel="apple-touch-startup-image" 
+      href="/icons/splash-640x1136.png" 
+      media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)"
+    />
+    <link 
+      rel="apple-touch-startup-image" 
+      href="/icons/splash-750x1334.png" 
+      media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)"
+    />
+    <link 
+      rel="apple-touch-startup-image" 
+      href="/icons/splash-1242x2208.png" 
+      media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)"
+    />
+    <link 
+      rel="apple-touch-startup-image" 
+      href="/icons/splash-1125x2436.png" 
+      media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)"
+    />
+    <link 
+      rel="apple-touch-startup-image" 
+      href="/icons/splash-1242x2688.png" 
+      media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3)"
+    />
+    
+    <!-- Manifest PWA -->
+    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-72x72.png" />
+    <link rel="shortcut icon" href="/icons/icon-72x72.png" />
+    
+    <!-- Preconnect para performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Título -->
+    <title>GiGaGym PWA</title>
+    
+    <!-- Estilos críticos inline para evitar FOUC -->
+    <style>
+      /* Previne flash de conteúdo não estilizado */
+      html {
+        background-color: #0f0f0f;
+      }
+      
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #0f0f0f;
+        color: #ffffff;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        min-height: 100vh;
+      }
+      
+      /* Loading spinner */
+      #loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #0f0f0f;
+        z-index: 9999;
+      }
+      
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(132, 204, 22, 0.3);
+        border-top-color: #84cc16;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Loading spinner (será removido pelo React) -->
+    <div id="loading">
+      <div class="spinner"></div>
+    </div>
+    
+    <div id="root"></div>
+    
+    <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Registro do Service Worker -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js')
+            .then(function(registration) {
+              console.log('Service Worker registrado com sucesso:', registration.scope);
+            })
+            .catch(function(error) {
+              console.log('Falha ao registrar Service Worker:', error);
+            });
+        });
+      }
+    </script>
+  </body>
+</html>
+

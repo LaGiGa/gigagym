@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.devserver.pid
+*.log
+.vscode/
+.DS_Store
