@@ -1,208 +1,126 @@
 // Service Worker do GiGaGym PWA
-// Estratégia: Cache First, then Network
+// Estrategia: cache first para assets e network first para navegacao
 
-const CACHE_NAME = 'GiGaGym-v2';
+const BASE_PATH = '/gigagym';
+const CACHE_NAME = 'GiGaGym-v3';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icons/icon-72x72.png',
-  '/icons/icon-96x96.png',
-  '/icons/icon-128x128.png',
-  '/icons/icon-144x144.png',
-  '/icons/icon-152x152.png',
-  '/icons/icon-192x192.png',
-  '/icons/icon-384x384.png',
-  '/icons/icon-512x512.png'
+  `${BASE_PATH}/`,
+  `${BASE_PATH}/index.html`,
+  `${BASE_PATH}/manifest.json`,
+  `${BASE_PATH}/icons/icon-72x72.png`,
+  `${BASE_PATH}/icons/icon-96x96.png`,
+  `${BASE_PATH}/icons/icon-128x128.png`,
+  `${BASE_PATH}/icons/icon-144x144.png`,
+  `${BASE_PATH}/icons/icon-152x152.png`,
+  `${BASE_PATH}/icons/icon-192x192.png`,
+  `${BASE_PATH}/icons/icon-384x384.png`,
+  `${BASE_PATH}/icons/icon-512x512.png`,
 ];
 
-// Instalação - cachear assets estáticos
 self.addEventListener('install', (event) => {
-  console.log('[SW] Instalando Service Worker...');
-  
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('[SW] Cache aberto, adicionando assets estáticos...');
-        return cache.addAll(STATIC_ASSETS);
-      })
-      .then(() => {
-        console.log('[SW] Assets estáticos cacheados com sucesso');
-        return self.skipWaiting();
-      })
-      .catch((error) => {
-        console.error('[SW] Erro ao cachear assets:', error);
-      })
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(STATIC_ASSETS))
+      .then(() => self.skipWaiting())
   );
 });
 
-// Ativação - limpar caches antigos
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Ativando Service Worker...');
-  
   event.waitUntil(
-    caches.keys()
-      .then((cacheNames) => {
-        return Promise.all(
-          cacheNames.map((cacheName) => {
-            if (cacheName !== CACHE_NAME) {
-              console.log('[SW] Removendo cache antigo:', cacheName);
-              return caches.delete(cacheName);
-            }
-          })
-        );
-      })
-      .then(() => {
-        console.log('[SW] Service Worker ativado');
-        return self.clients.claim();
-      })
+    caches
+      .keys()
+      .then((keys) => Promise.all(keys.map((key) => (key !== CACHE_NAME ? caches.delete(key) : Promise.resolve()))))
+      .then(() => self.clients.claim())
   );
 });
 
-// Fetch - interceptar requisições
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // For HTML navigation, prefer network to avoid stale app shell.
+  if (request.method !== 'GET') return;
+
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put('/index.html', networkResponse.clone());
-            });
+            caches.open(CACHE_NAME).then((cache) => cache.put(`${BASE_PATH}/index.html`, networkResponse.clone()));
           }
           return networkResponse;
         })
-        .catch(async () => {
-          const cached = await caches.match('/index.html');
-          return cached || Response.error();
-        })
+        .catch(() => caches.match(`${BASE_PATH}/index.html`))
     );
     return;
   }
-  
-  // Estratégia: Cache First para assets estáticos
-  if (request.method === 'GET' && (
-    url.pathname.startsWith('/assets/') ||
+
+  const isStaticAsset =
+    url.pathname.startsWith(`${BASE_PATH}/assets/`) ||
     url.pathname.endsWith('.js') ||
     url.pathname.endsWith('.css') ||
     url.pathname.endsWith('.png') ||
     url.pathname.endsWith('.jpg') ||
     url.pathname.endsWith('.svg') ||
-    url.pathname.endsWith('.json') ||
-    url.pathname === '/' ||
-    url.pathname === '/index.html'
-  )) {
-    event.respondWith(
-      caches.match(request)
-        .then((cachedResponse) => {
-          if (cachedResponse) {
-            // Retorna do cache e atualiza em background
-            fetch(request)
-              .then((networkResponse) => {
-                if (networkResponse && networkResponse.status === 200) {
-                  caches.open(CACHE_NAME).then((cache) => {
-                    cache.put(request, networkResponse.clone());
-                  });
-                }
-              })
-              .catch(() => {});
-            return cachedResponse;
-          }
-          
-          // Se não está no cache, busca na rede
-          return fetch(request)
-            .then((networkResponse) => {
-              if (!networkResponse || networkResponse.status !== 200) {
-                return networkResponse;
-              }
-              
-              const responseToCache = networkResponse.clone();
-              caches.open(CACHE_NAME).then((cache) => {
-                cache.put(request, responseToCache);
-              });
-              
-              return networkResponse;
-            })
-            .catch((error) => {
-              console.error('[SW] Erro na requisição:', error);
-              // Fallback para offline
-              if (request.mode === 'navigate') {
-                return caches.match('/index.html');
-              }
-              throw error;
-            });
-        })
-    );
-  }
-  // Para outras requisições, usa a rede diretamente
-});
+    url.pathname.endsWith('.json');
 
-// Sync - sincronização em background (para quando voltar online)
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-workouts') {
-    console.log('[SW] Sincronizando treinos...');
-    event.waitUntil(syncWorkouts());
-  }
-});
+  if (!isStaticAsset) return;
 
-// Push - notificações push
-self.addEventListener('push', (event) => {
-  console.log('[SW] Push recebido:', event);
-  
-  const options = {
-    body: event.data?.text() || 'Hora do treino! 💪',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
-    vibrate: [100, 50, 100],
-    data: {
-      url: '/'
-    },
-    actions: [
-      {
-        action: 'open',
-        title: 'Abrir App'
-      },
-      {
-        action: 'dismiss',
-        title: 'Dispensar'
+  event.respondWith(
+    caches.match(request).then((cachedResponse) => {
+      if (cachedResponse) {
+        fetch(request)
+          .then((networkResponse) => {
+            if (networkResponse && networkResponse.status === 200) {
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, networkResponse.clone()));
+            }
+          })
+          .catch(() => {});
+
+        return cachedResponse;
       }
-    ]
-  };
-  
-  event.waitUntil(
-    self.registration.showNotification('GiGaGym', options)
+
+      return fetch(request).then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200) {
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, networkResponse.clone()));
+        }
+        return networkResponse;
+      });
+    })
   );
 });
 
-// Clique na notificação
-self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Clique na notificação:', event);
-  
-  event.notification.close();
-  
-  if (event.action === 'open' || !event.action) {
-    event.waitUntil(
-      clients.openWindow(event.notification.data?.url || '/')
-    );
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-workouts') {
+    event.waitUntil(Promise.resolve());
   }
 });
 
-// Função para sincronizar treinos (placeholder para futura integração)
-async function syncWorkouts() {
-  // Implementar sincronização com backend quando disponível
-  console.log('[SW] Sincronização de treinos (placeholder)');
-}
+self.addEventListener('push', (event) => {
+  const options = {
+    body: event.data?.text() || 'Hora do treino!',
+    icon: `${BASE_PATH}/icons/icon-192x192.png`,
+    badge: `${BASE_PATH}/icons/icon-72x72.png`,
+    vibrate: [100, 50, 100],
+    data: { url: `${BASE_PATH}/` },
+    actions: [
+      { action: 'open', title: 'Abrir app' },
+      { action: 'dismiss', title: 'Dispensar' },
+    ],
+  };
 
-// Mensagens do cliente
+  event.waitUntil(self.registration.showNotification('GiGaGym', options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  if (event.action === 'open' || !event.action) {
+    event.waitUntil(clients.openWindow(event.notification.data?.url || `${BASE_PATH}/`));
+  }
+});
+
 self.addEventListener('message', (event) => {
-  console.log('[SW] Mensagem recebida:', event.data);
-  
   if (event.data === 'skipWaiting') {
     self.skipWaiting();
   }
 });
-

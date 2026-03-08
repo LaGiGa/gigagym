@@ -15,6 +15,8 @@ interface PWAState {
 }
 
 export function usePWA() {
+  const baseUrl = import.meta.env.BASE_URL;
+
   const [state, setState] = useState<PWAState>({
     isInstallable: false,
     isInstalled: false,
@@ -108,7 +110,7 @@ export function usePWA() {
     }
 
     try {
-      const registration = await navigator.serviceWorker.register('/sw.js');
+      const registration = await navigator.serviceWorker.register(`${baseUrl}sw.js`);
       console.log('Service Worker registrado:', registration);
       return registration;
     } catch (error) {
@@ -135,8 +137,8 @@ export function usePWA() {
   const sendNotification = useCallback((title: string, options?: NotificationOptions) => {
     if ('Notification' in window && Notification.permission === 'granted') {
       new Notification(title, {
-        icon: '/icons/icon-192x192.png',
-        badge: '/icons/icon-72x72.png',
+        icon: `${baseUrl}icons/icon-192x192.png`,
+        badge: `${baseUrl}icons/icon-72x72.png`,
         ...options
       });
     }

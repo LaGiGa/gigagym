@@ -4,12 +4,12 @@ import { defineConfig } from "vite"
 import { inspectAttr } from 'kimi-plugin-inspect-react'
 
 // https://vite.dev/config/
-export default defineConfig({
-  base: './',
+export default defineConfig(({ mode }) => ({
+  base: mode === 'production' ? '/gigagym/' : '/',
   plugins: [inspectAttr(), react()],
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      '@': path.resolve(__dirname, './src'),
     },
   },
-});
+}));
