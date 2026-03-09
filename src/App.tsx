@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Header } from '@/components/layout/Header';
 import { BottomNav } from '@/components/layout/BottomNav';
@@ -16,37 +16,7 @@ import './App.css';
 function AppContent() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { registerServiceWorker, isOffline, requestNotificationPermission, sendNotification } = usePWA();
-  const { state, isHydrated } = useApp();
-  const onboardingToastRef = useRef<string | null>(null);
-
-  const onboarding = useMemo(() => {
-    const hasName = state.profile.name.trim().length > 0;
-    const hasAge = state.profile.age > 0;
-    const hasHeight = state.profile.height > 0;
-    const hasCurrentWeight = state.bodyMetrics.currentWeight > 0 || state.weightHistory.length > 0;
-    const hasTargetWeight = typeof state.profile.targetWeight === 'number' && state.profile.targetWeight > 0;
-    const hasWorkoutPlan = Object.values(state.weeklyWorkouts).some((workout) => workout !== null);
-
-    const isProfileReady = hasName && hasAge && hasHeight && hasCurrentWeight && hasTargetWeight;
-    const isComplete = isProfileReady && hasWorkoutPlan;
-
-    let nextTab: 'profile' | 'workouts' | 'dashboard' = 'dashboard';
-    if (!isProfileReady) nextTab = 'profile';
-    else if (!hasWorkoutPlan) nextTab = 'workouts';
-
-    let message = '';
-    if (!isProfileReady) {
-      message = 'Complete seu perfil e meta para liberar a Home.';
-    } else if (!hasWorkoutPlan) {
-      message = 'Agora monte seu primeiro treino para concluir a configuracao.';
-    }
-
-    return {
-      isComplete,
-      nextTab,
-      message,
-    };
-  }, [state]);
+  const { state } = useApp();
 
   useEffect(() => {
     registerServiceWorker();
@@ -76,20 +46,6 @@ function AppContent() {
       });
     }
   }, [isOffline]);
-
-  useEffect(() => {
-    if (!isHydrated) return;
-    if (onboarding.isComplete) return;
-
-    if (activeTab !== onboarding.nextTab) {
-      setActiveTab(onboarding.nextTab);
-    }
-
-    if (onboardingToastRef.current !== onboarding.message) {
-      onboardingToastRef.current = onboarding.message;
-      toast.info(onboarding.message, { duration: 4000 });
-    }
-  }, [activeTab, onboarding, isHydrated]);
 
   useEffect(() => {
     if (!state.settings.notifications) return;
@@ -129,22 +85,6 @@ function AppContent() {
   }, [state.settings.notifications, sendNotification]);
 
   const handleTabChange = (tab: string) => {
-    if (!isHydrated) {
-      setActiveTab(tab);
-      return;
-    }
-
-    if (onboarding.isComplete) {
-      setActiveTab(tab);
-      return;
-    }
-
-    if (tab !== onboarding.nextTab) {
-      toast.info(onboarding.message, { duration: 2500 });
-      setActiveTab(onboarding.nextTab);
-      return;
-    }
-
     setActiveTab(tab);
   };
 
@@ -174,7 +114,7 @@ function AppContent() {
   const renderPage = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard onNavigate={handleTabChange} />;
+        return <Dashboard onNavigate={setActiveTab} />;
       case 'workouts':
         return <Workouts />;
       case 'progress':
@@ -192,8 +132,8 @@ function AppContent() {
     <div className="app-shell bg-background text-foreground">
       <div className="app-content-layer">
         <Header
-          title={onboarding.isComplete ? 'GiGaGym' : 'Configuracao inicial'}
-          showNotifications={onboarding.isComplete}
+          title="GiGaGym"
+          showNotifications
           showSettings
           onNotificationsClick={handleNotificationClick}
           onSettingsClick={() => setActiveTab('profile')}
