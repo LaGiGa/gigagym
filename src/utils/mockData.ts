@@ -1,15 +1,15 @@
-﻿// Dados mockados para demonstraÃ§Ã£o
+﻿// Dados mockados para demonstracao
 
 import type { Workout, Exercise, WeightEntry, UserProfile, AppSettings } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
-// ExercÃ­cios predefinidos
+// Exercicios predefinidos
 export const predefinedExercises: Omit<Exercise, 'id'>[] = [
   // Peito
   { name: 'Supino Reto', muscleGroup: 'peito', sets: 4, reps: '8-12', restTime: 90 },
   { name: 'Supino Inclinado', muscleGroup: 'peito', sets: 3, reps: '10-12', restTime: 90 },
   { name: 'Crucifixo', muscleGroup: 'peito', sets: 3, reps: '12-15', restTime: 60 },
-  { name: 'FlexÃ£o', muscleGroup: 'peito', sets: 3, reps: '15-20', restTime: 60 },
+  { name: 'Flexão', muscleGroup: 'peito', sets: 3, reps: '15-20', restTime: 60 },
   
   // Costas
   { name: 'Puxada Frontal', muscleGroup: 'costas', sets: 4, reps: '8-12', restTime: 90 },
@@ -19,21 +19,21 @@ export const predefinedExercises: Omit<Exercise, 'id'>[] = [
   
   // Ombros
   { name: 'Desenvolvimento com Halteres', muscleGroup: 'ombros', sets: 4, reps: '8-12', restTime: 90 },
-  { name: 'ElevaÃ§Ã£o Lateral', muscleGroup: 'ombros', sets: 4, reps: '12-15', restTime: 60 },
-  { name: 'ElevaÃ§Ã£o Frontal', muscleGroup: 'ombros', sets: 3, reps: '12-15', restTime: 60 },
+  { name: 'Elevação Lateral', muscleGroup: 'ombros', sets: 4, reps: '12-15', restTime: 60 },
+  { name: 'Elevação Frontal', muscleGroup: 'ombros', sets: 3, reps: '12-15', restTime: 60 },
   { name: 'Desenvolvimento Arnold', muscleGroup: 'ombros', sets: 3, reps: '10-12', restTime: 90 },
   
-  // BÃ­ceps
+  // Bíceps
   { name: 'Rosca Direta', muscleGroup: 'biceps', sets: 4, reps: '10-12', restTime: 60 },
   { name: 'Rosca Alternada', muscleGroup: 'biceps', sets: 3, reps: '10-12', restTime: 60 },
   { name: 'Rosca Martelo', muscleGroup: 'biceps', sets: 3, reps: '12-15', restTime: 60 },
   { name: 'Rosca Scott', muscleGroup: 'biceps', sets: 3, reps: '10-12', restTime: 60 },
   
-  // TrÃ­ceps
-  { name: 'TrÃ­ceps Testa', muscleGroup: 'triceps', sets: 4, reps: '10-12', restTime: 60 },
-  { name: 'TrÃ­ceps Corda', muscleGroup: 'triceps', sets: 4, reps: '12-15', restTime: 60 },
+  // Tríceps
+  { name: 'Tríceps Testa', muscleGroup: 'triceps', sets: 4, reps: '10-12', restTime: 60 },
+  { name: 'Tríceps Corda', muscleGroup: 'triceps', sets: 4, reps: '12-15', restTime: 60 },
   { name: 'Mergulho no Banco', muscleGroup: 'triceps', sets: 3, reps: '12-15', restTime: 60 },
-  { name: 'ExtensÃ£o de TrÃ­ceps', muscleGroup: 'triceps', sets: 3, reps: '10-12', restTime: 60 },
+  { name: 'Extensão de Tríceps', muscleGroup: 'triceps', sets: 3, reps: '10-12', restTime: 60 },
   
   // Pernas
   { name: 'Agachamento', muscleGroup: 'pernas', sets: 4, reps: '8-12', restTime: 120 },
@@ -43,25 +43,25 @@ export const predefinedExercises: Omit<Exercise, 'id'>[] = [
   { name: 'Cadeira Abdutora', muscleGroup: 'pernas', sets: 3, reps: '15-20', restTime: 60 },
   { name: 'Cadeira Adutora', muscleGroup: 'pernas', sets: 3, reps: '15-20', restTime: 60 },
   
-  // GlÃºteos
-  { name: 'ElevaÃ§Ã£o PÃ©lvica', muscleGroup: 'gluteos', sets: 4, reps: '12-15', restTime: 90 },
-  { name: 'Agachamento SumÃ´', muscleGroup: 'gluteos', sets: 3, reps: '12-15', restTime: 90 },
+  // Glúteos
+  { name: 'Elevação Pélvica', muscleGroup: 'gluteos', sets: 4, reps: '12-15', restTime: 90 },
+  { name: 'Agachamento Sumô', muscleGroup: 'gluteos', sets: 3, reps: '12-15', restTime: 90 },
   { name: 'Afundo', muscleGroup: 'gluteos', sets: 3, reps: '10-12', restTime: 90 },
   
   // Panturrilha
-  { name: 'ElevaÃ§Ã£o de Panturrilha em PÃ©', muscleGroup: 'panturrilha', sets: 4, reps: '15-20', restTime: 60 },
-  { name: 'ElevaÃ§Ã£o de Panturrilha Sentado', muscleGroup: 'panturrilha', sets: 3, reps: '15-20', restTime: 60 },
+  { name: 'Elevação de Panturrilha em Pé', muscleGroup: 'panturrilha', sets: 4, reps: '15-20', restTime: 60 },
+  { name: 'Elevação de Panturrilha Sentado', muscleGroup: 'panturrilha', sets: 3, reps: '15-20', restTime: 60 },
   
-  // AbdÃ´men
+  // Abdômen
   { name: 'Crunch', muscleGroup: 'abdomen', sets: 4, reps: '20-25', restTime: 45 },
   { name: 'Prancha', muscleGroup: 'abdomen', sets: 3, reps: '30-60s', restTime: 60 },
-  { name: 'ElevaÃ§Ã£o de Pernas', muscleGroup: 'abdomen', sets: 3, reps: '15-20', restTime: 45 },
+  { name: 'Elevação de Pernas', muscleGroup: 'abdomen', sets: 3, reps: '15-20', restTime: 45 },
   { name: 'Russian Twist', muscleGroup: 'abdomen', sets: 3, reps: '20-30', restTime: 45 },
   
   // Cardio
   { name: 'Corrida na Esteira', muscleGroup: 'cardio', sets: 1, reps: '20-30min', restTime: 0 },
-  { name: 'Bicicleta ErgomÃ©trica', muscleGroup: 'cardio', sets: 1, reps: '20-30min', restTime: 0 },
-  { name: 'ElÃ­ptico', muscleGroup: 'cardio', sets: 1, reps: '20-30min', restTime: 0 },
+  { name: 'Bicicleta Ergométrica', muscleGroup: 'cardio', sets: 1, reps: '20-30min', restTime: 0 },
+  { name: 'Elíptico', muscleGroup: 'cardio', sets: 1, reps: '20-30min', restTime: 0 },
     { name: 'Burpees', muscleGroup: 'cardio', sets: 3, reps: '10-15', restTime: 60 },
 
   // Mais exercicios de Peito
@@ -123,7 +123,7 @@ export const predefinedExercises: Omit<Exercise, 'id'>[] = [
 export const sampleWorkouts: Workout[] = [
   {
     id: uuidv4(),
-    name: 'Peito e TrÃ­ceps',
+    name: 'Peito e Tríceps',
     muscleGroup: 'peito',
     notes: 'Foco em hipertrofia com cargas moderadas',
     exercises: [
@@ -137,7 +137,7 @@ export const sampleWorkouts: Workout[] = [
   },
   {
     id: uuidv4(),
-    name: 'Costas e BÃ­ceps',
+    name: 'Costas e Bíceps',
     muscleGroup: 'costas',
     notes: 'Puxadas com foco na largura das costas',
     exercises: [
@@ -151,7 +151,7 @@ export const sampleWorkouts: Workout[] = [
   },
   {
     id: uuidv4(),
-    name: 'Ombros e AbdÃ´men',
+    name: 'Ombros e Abdômen',
     muscleGroup: 'ombros',
     notes: 'Desenvolvimento com cargas progressivas',
     exercises: [
@@ -209,18 +209,18 @@ export const sampleWorkouts: Workout[] = [
 
 // Treinos semanais de exemplo
 export const sampleWeeklyWorkouts: Record<string, Workout | null> = {
-  segunda: sampleWorkouts[0], // Peito e TrÃ­ceps
-  terca: sampleWorkouts[1],   // Costas e BÃ­ceps
+  segunda: sampleWorkouts[0], // Peito e Tríceps
+  terca: sampleWorkouts[1],   // Costas e Bíceps
   quarta: null,               // Descanso
-  quinta: sampleWorkouts[2],  // Ombros e AbdÃ´men
+  quinta: sampleWorkouts[2],  // Ombros e Abdômen
   sexta: sampleWorkouts[3],   // Pernas
   sabado: sampleWorkouts[5],  // Cardio e Core
   domingo: null               // Descanso
 };
 
-// HistÃ³rico de peso de exemplo
+// Historico de peso de exemplo
 export const sampleWeightHistory: WeightEntry[] = [
-  { id: uuidv4(), date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), weight: 75.5, notes: 'InÃ­cio do acompanhamento' },
+  { id: uuidv4(), date: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), weight: 75.5, notes: 'Início do acompanhamento' },
   { id: uuidv4(), date: new Date(Date.now() - 23 * 24 * 60 * 60 * 1000).toISOString(), weight: 75.0 },
   { id: uuidv4(), date: new Date(Date.now() - 16 * 24 * 60 * 60 * 1000).toISOString(), weight: 74.2 },
   { id: uuidv4(), date: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString(), weight: 73.8 },
@@ -229,7 +229,7 @@ export const sampleWeightHistory: WeightEntry[] = [
 
 // Perfil de exemplo
 export const sampleProfile: UserProfile = {
-  name: 'JoÃ£o Fitness',
+  name: 'João Fitness',
   goal: 'hipertrofia',
   gender: 'masculino',
   age: 28,
@@ -238,7 +238,7 @@ export const sampleProfile: UserProfile = {
   targetWeight: 75.0
 };
 
-// ConfiguraÃ§Ãµes de exemplo
+// Configuracoes de exemplo
 export const sampleSettings: AppSettings = {
   theme: 'system',
   notifications: true,
@@ -246,7 +246,7 @@ export const sampleSettings: AppSettings = {
   language: 'pt-BR'
 };
 
-// FunÃ§Ã£o para inicializar dados de exemplo
+// Funcao para inicializar dados de exemplo
 export function initializeMockData() {
   try {
     const hasData = localStorage.getItem('GiGaGym_profile') !== null;
@@ -278,5 +278,6 @@ export function initializeMockData() {
     return false;
   }
 }
+
 
 
