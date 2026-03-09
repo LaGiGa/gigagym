@@ -16,17 +16,19 @@ import { cn } from '@/lib/utils';
 export function Calculators() {
   const { state } = useApp();
   const { profile } = state;
+  const hasWeightData = state.weightHistory.length > 0;
+  const isFreshUser = state.weightHistory.length === 0 && !profile.name.trim();
   
   // IMC Calculator
-  const [imcWeight, setImcWeight] = useState(profile.initialWeight.toString());
-  const [imcHeight, setImcHeight] = useState(profile.height.toString());
+  const [imcWeight, setImcWeight] = useState(hasWeightData ? state.bodyMetrics.currentWeight.toString() : '');
+  const [imcHeight, setImcHeight] = useState(isFreshUser ? '' : profile.height.toString());
   const [imcResult, setImcResult] = useState<IMCCResult | null>(null);
   
   // Body Fat Calculator
   const [bfGender, setBfGender] = useState<'masculino' | 'feminino'>(profile.gender);
-  const [bfAge, setBfAge] = useState(profile.age.toString());
-  const [bfHeight, setBfHeight] = useState(profile.height.toString());
-  const [bfWeight, setBfWeight] = useState(profile.initialWeight.toString());
+  const [bfAge, setBfAge] = useState(isFreshUser ? '' : profile.age.toString());
+  const [bfHeight, setBfHeight] = useState(isFreshUser ? '' : profile.height.toString());
+  const [bfWeight, setBfWeight] = useState(hasWeightData ? state.bodyMetrics.currentWeight.toString() : '');
   const [bfNeck, setBfNeck] = useState('');
   const [bfWaist, setBfWaist] = useState('');
   const [bfHip, setBfHip] = useState('');

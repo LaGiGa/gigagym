@@ -33,10 +33,10 @@ const defaultProfile: UserProfile = {
   name: '',
   goal: 'hipertrofia',
   gender: 'masculino',
-  age: 25,
-  height: 170,
-  initialWeight: 70,
-  targetWeight: 70,
+  age: 0,
+  height: 0,
+  initialWeight: 0,
+  targetWeight: undefined,
 };
 
 const defaultSettings: AppSettings = {
@@ -47,9 +47,9 @@ const defaultSettings: AppSettings = {
 };
 
 const defaultBodyMetrics: BodyMetrics = {
-  currentWeight: 70,
-  height: 170,
-  imc: 24.2,
+  currentWeight: 0,
+  height: 0,
+  imc: 0,
   lastUpdated: new Date().toISOString(),
 };
 

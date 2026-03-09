@@ -22,18 +22,31 @@ export function Profile() {
   const { state, updateProfile, updateSettings, resetAllData, forceLocalBackup, lastLocalSaveAt, addWeightEntry } = useApp();
   const { promptInstall, isInstallable, isInstalled } = usePWA();
   const { profile, settings } = state;
+  const isFreshUser = state.weightHistory.length === 0 && !profile.name.trim();
   
   const [name, setName] = useState(profile.name);
-  const [age, setAge] = useState(profile.age.toString());
-  const [height, setHeight] = useState(profile.height.toString());
-  const [currentWeight, setCurrentWeight] = useState(state.bodyMetrics.currentWeight.toString());
-  const [targetWeight, setTargetWeight] = useState(profile.targetWeight?.toString() || '');
+  const [age, setAge] = useState(isFreshUser ? '' : profile.age.toString());
+  const [height, setHeight] = useState(isFreshUser ? '' : profile.height.toString());
+  const [currentWeight, setCurrentWeight] = useState(
+    state.weightHistory.length > 0 ? state.bodyMetrics.currentWeight.toString() : ''
+  );
+  const [targetWeight, setTargetWeight] = useState(isFreshUser ? '' : profile.targetWeight?.toString() || '');
   const [importData, setImportData] = useState('');
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [isForcingBackup, setIsForcingBackup] = useState(false);
 
   const handleSaveProfile = () => {
+    const parsedAge = parseInt(age, 10);
+    const parsedHeight = parseFloat(height);
     const parsedCurrentWeight = parseFloat(currentWeight);
+    if (!Number.isFinite(parsedAge) || parsedAge <= 0) {
+      alert('Informe uma idade valida.');
+      return;
+    }
+    if (!Number.isFinite(parsedHeight) || parsedHeight <= 0) {
+      alert('Informe uma altura valida.');
+      return;
+    }
     if (!Number.isFinite(parsedCurrentWeight) || parsedCurrentWeight <= 0) {
       alert('Informe um peso atual valido.');
       return;
@@ -41,8 +54,8 @@ export function Profile() {
 
     updateProfile({
       name,
-      age: parseInt(age),
-      height: parseFloat(height),
+      age: parsedAge,
+      height: parsedHeight,
       initialWeight: parsedCurrentWeight,
       targetWeight: targetWeight ? parseFloat(targetWeight) : undefined
     });
@@ -238,7 +251,7 @@ export function Profile() {
         </Card>
       </div>
 
-      <p className="text-center text-xs text-muted-foreground pb-4">GiGaGym PWA v1.0.0</p>
+      <p className="text-center text-xs text-muted-foreground pb-4">By Laércio v1.0.0</p>
     </PageContainer>
   );
 }
