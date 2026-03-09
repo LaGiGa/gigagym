@@ -63,6 +63,7 @@ export function Workouts() {
   const [editName, setEditName] = useState('');
   const [editNotes, setEditNotes] = useState('');
   const [newExerciseName, setNewExerciseName] = useState('');
+  const [editExerciseGroup, setEditExerciseGroup] = useState<MuscleGroup>('peito');
 
   const currentWorkout = getWorkoutForDay(selectedDay);
 
@@ -70,6 +71,7 @@ export function Workouts() {
     if (!showEditDialog || !currentWorkout) return;
     setEditName(currentWorkout.name);
     setEditNotes(currentWorkout.notes || '');
+    setEditExerciseGroup(currentWorkout.muscleGroup || 'peito');
   }, [showEditDialog, currentWorkout]);
 
   const hasWorkoutMap = Object.keys(weeklyWorkouts).reduce((acc, day) => {
@@ -84,8 +86,13 @@ export function Workouts() {
   }, {} as Record<DayOfWeek, boolean>);
 
   const availableExercises = useMemo(
-    () => predefinedExercises.filter((exercise) => !currentWorkout?.exercises.some((ex) => ex.name === exercise.name)),
-    [currentWorkout]
+    () =>
+      predefinedExercises.filter((exercise) => {
+        const alreadyInWorkout = currentWorkout?.exercises.some((ex) => ex.name === exercise.name);
+        const isSelectedGroup = exercise.muscleGroup === editExerciseGroup;
+        return !alreadyInWorkout && isSelectedGroup;
+      }),
+    [currentWorkout, editExerciseGroup]
   );
 
   const groupExercises = useMemo(
@@ -121,7 +128,7 @@ export function Workouts() {
     if (!newExerciseName.trim()) return;
     addExerciseToWorkout(selectedDay, {
       name: newExerciseName.trim(),
-      muscleGroup: currentWorkout?.muscleGroup || 'outro',
+      muscleGroup: editExerciseGroup || currentWorkout?.muscleGroup || 'outro',
       sets: 3,
       reps: '10-12',
       restTime: 60,
@@ -309,11 +316,27 @@ export function Workouts() {
 
                 <div className="space-y-2">
                   <Label>Adicionar exercicio rapido</Label>
+                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                    {muscleGroups.map((group) => (
+                      <button
+                        key={`edit-group-${group}`}
+                        type="button"
+                        onClick={() => setEditExerciseGroup(group)}
+                        className={`rounded-full border px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
+                          editExerciseGroup === group
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-card border-border/70 hover:bg-accent/20'
+                        }`}
+                      >
+                        {getMuscleGroupName(group)}
+                      </button>
+                    ))}
+                  </div>
                   <div className="flex gap-2">
                     <Input
                       value={newExerciseName}
                       onChange={(e) => setNewExerciseName(e.target.value)}
-                      placeholder="Ex: Supino inclinado halter"
+                      placeholder={`Ex: ${getMuscleGroupName(editExerciseGroup)} personalizado`}
                     />
                     <Button onClick={handleAddExercise}>
                       <Plus className="w-4 h-4" />
@@ -323,7 +346,7 @@ export function Workouts() {
 
                 {availableExercises.length > 0 && (
                   <div className="space-y-2">
-                    <Label>Biblioteca</Label>
+                    <Label>Biblioteca ({getMuscleGroupName(editExerciseGroup)})</Label>
                     <div className="grid grid-cols-1 gap-2">
                       {availableExercises.slice(0, 8).map((exercise) => (
                         <button
