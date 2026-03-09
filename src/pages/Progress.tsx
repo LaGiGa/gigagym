@@ -352,6 +352,7 @@ export function Progress({ onNavigate }: ProgressProps) {
           </Card>
         </div>
       )}
+
     </PageContainer>
   );
 }

@@ -24,7 +24,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useWorkout } from '@/hooks/useWorkout';
-import { predefinedExercises, sampleWorkouts } from '@/utils/mockData';
+import { predefinedExercises } from '@/utils/mockData';
 import { getDayName, getMuscleGroupName } from '@/utils/calculations';
 import type { DayOfWeek, Exercise, MuscleGroup, Workout } from '@/types';
 
@@ -57,8 +57,8 @@ export function Workouts() {
   const [checklistDay, setChecklistDay] = useState<DayOfWeek | null>(null);
 
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<MuscleGroup>('peito');
-  const [customWorkoutName, setCustomWorkoutName] = useState('');
   const [builderExercises, setBuilderExercises] = useState<BuilderExercise[]>([]);
+  const [builderCustomExerciseName, setBuilderCustomExerciseName] = useState('');
 
   const [editName, setEditName] = useState('');
   const [editNotes, setEditNotes] = useState('');
@@ -88,22 +88,12 @@ export function Workouts() {
     [currentWorkout]
   );
 
-  const groupedTemplateWorkouts = useMemo(
-    () => sampleWorkouts.filter((workout) => workout.muscleGroup === selectedMuscleGroup),
-    [selectedMuscleGroup]
-  );
-
   const groupExercises = useMemo(
     () => predefinedExercises.filter((exercise) => exercise.muscleGroup === selectedMuscleGroup),
     [selectedMuscleGroup]
   );
 
-  const muscleGroups: MuscleGroup[] = ['peito', 'costas', 'ombros', 'biceps', 'triceps', 'pernas', 'abdomen', 'cardio', 'full_body'];
-
-  const handleAddWorkout = (workout: Workout) => {
-    assignWorkoutToDay(selectedDay, workout);
-    setShowAddDialog(false);
-  };
+  const muscleGroups: MuscleGroup[] = ['peito', 'costas', 'ombros', 'biceps', 'triceps', 'pernas', 'abdomen', 'cardio'];
 
   const handleDuplicateWorkout = (fromDay: DayOfWeek) => {
     duplicateWorkout(fromDay, selectedDay);
@@ -176,16 +166,39 @@ export function Workouts() {
     });
   };
 
+  const addCustomExerciseToBuilder = () => {
+    const cleanName = builderCustomExerciseName.trim();
+    if (!cleanName) return;
+    if (builderExercises.some((item) => item.name.toLowerCase() === cleanName.toLowerCase())) return;
+
+    setBuilderExercises((prev) => [
+      ...prev,
+      {
+        id: uuidv4(),
+        name: cleanName,
+        muscleGroup: selectedMuscleGroup,
+        sets: 3,
+        reps: '10-12',
+        restTime: 60,
+      },
+    ]);
+    setBuilderCustomExerciseName('');
+  };
+
   const handleCreateCustomWorkout = () => {
     if (builderExercises.length === 0) {
       alert('Selecione pelo menos um exercicio para montar o treino.');
       return;
     }
 
+    const exerciseGroups = new Set(builderExercises.map((exercise) => exercise.muscleGroup));
+    const workoutMuscleGroup: MuscleGroup =
+      exerciseGroups.size === 1 ? builderExercises[0].muscleGroup : 'full_body';
+
     const newWorkout: Workout = {
       id: uuidv4(),
-      name: customWorkoutName.trim() || `Treino ${getMuscleGroupName(selectedMuscleGroup)}`,
-      muscleGroup: selectedMuscleGroup,
+      name: `Treino de ${getDayName(selectedDay)}`,
+      muscleGroup: workoutMuscleGroup,
       notes: 'Treino personalizado premium',
       status: 'nao_iniciado',
       exercises: builderExercises.map((exercise) => ({
@@ -201,7 +214,6 @@ export function Workouts() {
 
     assignWorkoutToDay(selectedDay, newWorkout);
     setBuilderExercises([]);
-    setCustomWorkoutName('');
     setShowAddDialog(false);
   };
 
@@ -260,7 +272,7 @@ export function Workouts() {
           <WorkoutCard workout={currentWorkout} onClick={() => handleOpenChecklist(selectedDay)} onStart={handleStartWorkout} />
 
           <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-            <DialogContent className="max-h-[85vh] overflow-y-auto">
+            <DialogContent className="max-h-[85dvh] overflow-y-auto overflow-x-hidden p-4 sm:p-6">
               <DialogHeader>
                 <DialogTitle>Editar treino do dia</DialogTitle>
               </DialogHeader>
@@ -353,23 +365,20 @@ export function Workouts() {
                   Adicionar treino
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-h-[88vh] overflow-y-auto">
+              <DialogContent className="max-h-[88dvh] overflow-y-auto overflow-x-hidden p-4 sm:p-6">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-primary" />
-                    Builder Premium por grupo muscular
+                    Criar treino personalizado
                   </DialogTitle>
                 </DialogHeader>
 
-                <div className="space-y-4 mt-3">
+                <div className="mt-3 space-y-4 overflow-x-hidden">
                   <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
                     {muscleGroups.map((group) => (
                       <button
                         key={group}
-                        onClick={() => {
-                          setSelectedMuscleGroup(group);
-                          setBuilderExercises([]);
-                        }}
+                        onClick={() => setSelectedMuscleGroup(group)}
                         className={`rounded-full border px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
                           selectedMuscleGroup === group
                             ? 'bg-primary text-primary-foreground border-primary'
@@ -381,33 +390,19 @@ export function Workouts() {
                     ))}
                   </div>
 
-                  <div>
-                    <p className="text-sm font-semibold mb-2">Treinos prontos</p>
-                    <div className="space-y-2">
-                      {groupedTemplateWorkouts.length > 0 ? (
-                        groupedTemplateWorkouts.map((workout) => (
-                          <Card
-                            key={workout.id}
-                            className="p-3 cursor-pointer hover:bg-accent transition-colors text-left"
-                            onClick={() => handleAddWorkout(workout)}
-                          >
-                            <p className="font-medium">{workout.name}</p>
-                            <p className="text-xs text-muted-foreground">{workout.exercises.length} exercicios</p>
-                          </Card>
-                        ))
-                      ) : (
-                        <p className="text-xs text-muted-foreground">Nenhum treino pronto para esse grupo.</p>
-                      )}
-                    </div>
-                  </div>
-
                   <div className="rounded-xl border border-border/70 p-3 space-y-3 bg-card/80 text-left">
                     <p className="text-sm font-semibold">Montar treino personalizado</p>
-                    <Input
-                      value={customWorkoutName}
-                      onChange={(e) => setCustomWorkoutName(e.target.value)}
-                      placeholder={`Nome do treino (${getMuscleGroupName(selectedMuscleGroup)})`}
-                    />
+
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={builderCustomExerciseName}
+                        onChange={(e) => setBuilderCustomExerciseName(e.target.value)}
+                        placeholder="Adicionar exercicio manual"
+                      />
+                      <Button type="button" onClick={addCustomExerciseToBuilder} className="shrink-0">
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
 
                     <div className="space-y-2 max-h-44 overflow-y-auto">
                       {groupExercises.map((exercise) => (
@@ -416,19 +411,23 @@ export function Workouts() {
                           onClick={() => addExerciseToBuilder(exercise)}
                           className="w-full rounded-lg border border-border/70 px-3 py-2 text-left text-sm hover:bg-accent/20"
                         >
-                          {exercise.name}
+                          <p className="truncate">{exercise.name}</p>
                         </button>
                       ))}
                     </div>
 
                     {builderExercises.length > 0 && (
                       <div className="space-y-2">
-                        <p className="text-xs font-semibold text-muted-foreground">Exercicios selecionados ({builderExercises.length})</p>
+                        <p className="text-xs font-semibold text-muted-foreground">
+                          Exercicios selecionados ({builderExercises.length})
+                        </p>
                         {builderExercises.map((exercise, index) => (
-                          <div key={exercise.id} className="rounded-lg border border-border/70 p-2">
+                          <div key={exercise.id} className="rounded-lg border border-border/70 p-2 min-w-0">
                             <div className="flex items-center justify-between gap-2 mb-2">
-                              <p className="text-sm font-medium truncate">{exercise.name}</p>
-                              <div className="flex items-center gap-1">
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium truncate">{exercise.name}</p>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
                                 <Button variant="ghost" size="icon-sm" onClick={() => moveBuilderExercise(index, 'up')}>
                                   <ArrowUp className="w-4 h-4" />
                                 </Button>
@@ -441,7 +440,7 @@ export function Workouts() {
                               </div>
                             </div>
 
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                               <div>
                                 <Label className="text-[10px] text-muted-foreground">Series</Label>
                                 <Input
@@ -474,7 +473,7 @@ export function Workouts() {
                     )}
 
                     <Button onClick={handleCreateCustomWorkout} className="w-full bg-primary hover:bg-primary/90">
-                      Criar treino de {getMuscleGroupName(selectedMuscleGroup)}
+                      Salvar treino personalizado
                     </Button>
                   </div>
                 </div>

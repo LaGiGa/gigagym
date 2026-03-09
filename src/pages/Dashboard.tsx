@@ -13,7 +13,11 @@ import { useBodyMetrics } from '@/hooks/useBodyMetrics';
 import { getDayName, getMotivationalQuote } from '@/utils/calculations';
 import type { DayOfWeek } from '@/types';
 
-export function Dashboard() {
+interface DashboardProps {
+  onNavigate?: (tab: string) => void;
+}
+
+export function Dashboard({ onNavigate }: DashboardProps) {
   const { state } = useApp();
   const { weeklyWorkouts, getWeeklyStats, startWorkout } = useWorkout();
   const { currentWeight, getCurrentIMC, getWeightProgress } = useBodyMetrics();
@@ -48,6 +52,13 @@ export function Dashboard() {
     if (!todayKey) return;
     startWorkout(todayKey);
     setChecklistDay(todayKey);
+  };
+
+  const openWorkouts = () => onNavigate?.('workouts');
+  const openProgress = () => onNavigate?.('progress');
+  const openCalculator = (tab: 'imc' | 'bodyfat') => {
+    sessionStorage.setItem('gigagym_calculator_tab', tab);
+    onNavigate?.('calculators');
   };
 
   if (checklistDay) {
@@ -118,6 +129,7 @@ export function Dashboard() {
           }
           icon={TrendingUp}
           color="lime"
+          onClick={openProgress}
         />
         <StatCard
           title="IMC"
@@ -125,13 +137,14 @@ export function Dashboard() {
           subtitle={hasWeightData ? imc.classification : 'Sem dados ainda'}
           icon={Target}
           color="blue"
+          onClick={() => openCalculator('imc')}
         />
       </div>
 
       <div className="mb-6">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold">Treino de Hoje</h3>
-          <Button variant="ghost" size="sm" className="text-primary">
+          <Button variant="ghost" size="sm" className="text-primary" onClick={openWorkouts}>
             Ver todos
             <ChevronRight className="w-4 h-4 ml-1" />
           </Button>
@@ -149,7 +162,7 @@ export function Dashboard() {
               <Calendar className="w-8 h-8 text-muted-foreground" />
             </div>
             <p className="text-muted-foreground">Nenhum treino programado para hoje</p>
-            <Button variant="outline" className="mt-3">
+            <Button variant="outline" className="mt-3" onClick={openWorkouts}>
               Adicionar Treino
             </Button>
           </Card>
@@ -178,7 +191,10 @@ export function Dashboard() {
       <div className="mb-6">
         <h3 className="text-lg font-semibold mb-3">Atalhos Rapidos</h3>
         <div className="grid grid-cols-2 gap-3">
-          <Card className="p-4 cursor-pointer hover:bg-accent transition-colors active:scale-[0.98]">
+          <Card
+            onClick={() => openCalculator('imc')}
+            className="p-4 cursor-pointer hover:bg-accent transition-colors active:scale-[0.98]"
+          >
             <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center mb-2">
               <TrendingUp className="w-5 h-5 text-blue-500" />
             </div>
@@ -186,7 +202,10 @@ export function Dashboard() {
             <p className="text-xs text-muted-foreground">Calcule seu indice</p>
           </Card>
 
-          <Card className="p-4 cursor-pointer hover:bg-accent transition-colors active:scale-[0.98]">
+          <Card
+            onClick={() => openCalculator('bodyfat')}
+            className="p-4 cursor-pointer hover:bg-accent transition-colors active:scale-[0.98]"
+          >
             <div className="w-10 h-10 rounded-xl bg-orange-500/10 flex items-center justify-center mb-2">
               <Flame className="w-5 h-5 text-orange-500" />
             </div>

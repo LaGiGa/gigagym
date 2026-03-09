@@ -47,6 +47,10 @@ export function WorkoutCard({
   const completedExercises = workout.exercises.filter((ex) => ex.completed).length;
   const totalExercises = workout.exercises.length;
   const progress = totalExercises > 0 ? (completedExercises / totalExercises) * 100 : 0;
+  const groupsInWorkout = Array.from(new Set(workout.exercises.map((ex) => ex.muscleGroup)));
+  const hasMixedGroups = groupsInWorkout.length > 1;
+  const displayGroup = hasMixedGroups ? 'Personalizado' : getMuscleGroupName(workout.muscleGroup);
+  const displayEmoji = hasMixedGroups ? '✨' : getMuscleGroupEmoji(workout.muscleGroup);
 
   return (
     <Card
@@ -64,13 +68,13 @@ export function WorkoutCard({
           {showDay && dayName && <p className="mb-1 text-xs font-medium text-muted-foreground">{dayName}</p>}
 
           <div className="flex items-center gap-2">
-            <span className="text-lg">{getMuscleGroupEmoji(workout.muscleGroup)}</span>
+            <span className="text-lg">{displayEmoji}</span>
             <h3 className="truncate text-[17px] font-bold">{workout.name}</h3>
           </div>
 
           <div className="mt-1 flex items-center gap-2">
             <Badge variant="secondary" className="text-xs">
-              {getMuscleGroupName(workout.muscleGroup)}
+              {displayGroup}
             </Badge>
             <Badge className={cn('gap-1 text-xs', statusInfo.color)}>
               <StatusIcon className="h-3 w-3" />

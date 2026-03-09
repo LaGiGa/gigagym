@@ -256,10 +256,24 @@ export function AppProvider({ children }: AppProviderProps) {
   const [isHydrated, setIsHydrated] = useState(false);
   const [lastLocalSaveAt, setLastLocalSaveAt] = useState<string | null>(null);
 
+  const normalizeLoadedState = useCallback((loaded: Partial<AppState>): AppState => {
+    return {
+      ...initialState,
+      ...loaded,
+      profile: { ...initialState.profile, ...(loaded.profile || {}) },
+      settings: { ...initialState.settings, ...(loaded.settings || {}) },
+      weeklyWorkouts: { ...initialState.weeklyWorkouts, ...(loaded.weeklyWorkouts || {}) },
+      workoutHistory: loaded.workoutHistory || [],
+      weightHistory: loaded.weightHistory || [],
+      bodyMetrics: { ...initialState.bodyMetrics, ...(loaded.bodyMetrics || {}) },
+      customExercises: loaded.customExercises || [],
+    };
+  }, []);
+
   const loadSavedData = useCallback(async () => {
     const fullState = await getAppStatePersistent();
     if (fullState) {
-      dispatch({ type: 'LOAD_STATE', payload: fullState });
+      dispatch({ type: 'LOAD_STATE', payload: normalizeLoadedState(fullState) });
       setIsHydrated(true);
       return;
     }
@@ -282,9 +296,9 @@ export function AppProvider({ children }: AppProviderProps) {
       customExercises: customExercises || [],
     };
 
-    dispatch({ type: 'LOAD_STATE', payload: loadedState });
+    dispatch({ type: 'LOAD_STATE', payload: normalizeLoadedState(loadedState) });
     setIsHydrated(true);
-  }, []);
+  }, [normalizeLoadedState]);
 
   useEffect(() => {
     void loadSavedData();

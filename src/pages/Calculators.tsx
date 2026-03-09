@@ -1,6 +1,6 @@
 // Página de Calculadoras
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Calculator, Info, User } from 'lucide-react';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Card } from '@/components/ui/card';
@@ -33,6 +33,15 @@ export function Calculators() {
   const [bfWaist, setBfWaist] = useState('');
   const [bfHip, setBfHip] = useState('');
   const [bfResult, setBfResult] = useState<BodyFatResult | null>(null);
+  const [activeCalculatorTab, setActiveCalculatorTab] = useState<'imc' | 'bodyfat'>('imc');
+
+  useEffect(() => {
+    const preferredTab = sessionStorage.getItem('gigagym_calculator_tab');
+    if (preferredTab === 'imc' || preferredTab === 'bodyfat') {
+      setActiveCalculatorTab(preferredTab);
+      sessionStorage.removeItem('gigagym_calculator_tab');
+    }
+  }, []);
 
   const handleCalculateIMC = () => {
     const weight = parseFloat(imcWeight);
@@ -72,7 +81,7 @@ export function Calculators() {
         </p>
       </div>
 
-      <Tabs defaultValue="imc" className="w-full">
+      <Tabs value={activeCalculatorTab} onValueChange={(value) => setActiveCalculatorTab(value as 'imc' | 'bodyfat')} className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-6">
           <TabsTrigger value="imc">IMC</TabsTrigger>
           <TabsTrigger value="bodyfat">% Gordura</TabsTrigger>
