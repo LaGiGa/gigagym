@@ -16,7 +16,7 @@ import './App.css';
 function AppContent() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { registerServiceWorker, isOffline, requestNotificationPermission, sendNotification } = usePWA();
-  const { state } = useApp();
+  const { state, isHydrated } = useApp();
   const onboardingToastRef = useRef<string | null>(null);
 
   const onboarding = useMemo(() => {
@@ -78,6 +78,7 @@ function AppContent() {
   }, [isOffline]);
 
   useEffect(() => {
+    if (!isHydrated) return;
     if (onboarding.isComplete) return;
 
     if (activeTab !== onboarding.nextTab) {
@@ -88,7 +89,7 @@ function AppContent() {
       onboardingToastRef.current = onboarding.message;
       toast.info(onboarding.message, { duration: 4000 });
     }
-  }, [activeTab, onboarding]);
+  }, [activeTab, onboarding, isHydrated]);
 
   useEffect(() => {
     if (!state.settings.notifications) return;
@@ -128,6 +129,11 @@ function AppContent() {
   }, [state.settings.notifications, sendNotification]);
 
   const handleTabChange = (tab: string) => {
+    if (!isHydrated) {
+      setActiveTab(tab);
+      return;
+    }
+
     if (onboarding.isComplete) {
       setActiveTab(tab);
       return;

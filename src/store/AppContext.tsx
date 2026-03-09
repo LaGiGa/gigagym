@@ -228,6 +228,7 @@ function appReducer(state: AppState, action: Action): AppState {
 
 interface AppContextType {
   state: AppState;
+  isHydrated: boolean;
   dispatch: React.Dispatch<Action>;
   setProfile: (profile: UserProfile) => void;
   updateProfile: (profile: Partial<UserProfile>) => void;
@@ -385,6 +386,7 @@ export function AppProvider({ children }: AppProviderProps) {
 
   const value: AppContextType = {
     state,
+    isHydrated,
     dispatch,
     setProfile,
     updateProfile,
