@@ -10,31 +10,31 @@ export const predefinedExercises: Omit<Exercise, 'id'>[] = [
   { name: 'Supino Inclinado', muscleGroup: 'peito', sets: 3, reps: '10-12', restTime: 90 },
   { name: 'Crucifixo', muscleGroup: 'peito', sets: 3, reps: '12-15', restTime: 60 },
   { name: 'Flexão', muscleGroup: 'peito', sets: 3, reps: '15-20', restTime: 60 },
-  
+
   // Costas
   { name: 'Puxada Frontal', muscleGroup: 'costas', sets: 4, reps: '8-12', restTime: 90 },
   { name: 'Remada Curvada', muscleGroup: 'costas', sets: 4, reps: '8-12', restTime: 90 },
   { name: 'Remada Unilateral', muscleGroup: 'costas', sets: 3, reps: '10-12', restTime: 60 },
   { name: 'Levantamento Terra', muscleGroup: 'costas', sets: 3, reps: '6-10', restTime: 120 },
-  
+
   // Ombros
   { name: 'Desenvolvimento com Halteres', muscleGroup: 'ombros', sets: 4, reps: '8-12', restTime: 90 },
   { name: 'Elevação Lateral', muscleGroup: 'ombros', sets: 4, reps: '12-15', restTime: 60 },
   { name: 'Elevação Frontal', muscleGroup: 'ombros', sets: 3, reps: '12-15', restTime: 60 },
   { name: 'Desenvolvimento Arnold', muscleGroup: 'ombros', sets: 3, reps: '10-12', restTime: 90 },
-  
+
   // Bíceps
   { name: 'Rosca Direta', muscleGroup: 'biceps', sets: 4, reps: '10-12', restTime: 60 },
   { name: 'Rosca Alternada', muscleGroup: 'biceps', sets: 3, reps: '10-12', restTime: 60 },
   { name: 'Rosca Martelo', muscleGroup: 'biceps', sets: 3, reps: '12-15', restTime: 60 },
   { name: 'Rosca Scott', muscleGroup: 'biceps', sets: 3, reps: '10-12', restTime: 60 },
-  
+
   // Tríceps
   { name: 'Tríceps Testa', muscleGroup: 'triceps', sets: 4, reps: '10-12', restTime: 60 },
   { name: 'Tríceps Corda', muscleGroup: 'triceps', sets: 4, reps: '12-15', restTime: 60 },
   { name: 'Mergulho no Banco', muscleGroup: 'triceps', sets: 3, reps: '12-15', restTime: 60 },
   { name: 'Extensão de Tríceps', muscleGroup: 'triceps', sets: 3, reps: '10-12', restTime: 60 },
-  
+
   // Pernas
   { name: 'Agachamento', muscleGroup: 'pernas', sets: 4, reps: '8-12', restTime: 120 },
   { name: 'Leg Press', muscleGroup: 'pernas', sets: 4, reps: '10-15', restTime: 120 },
@@ -42,27 +42,27 @@ export const predefinedExercises: Omit<Exercise, 'id'>[] = [
   { name: 'Mesa Flexora', muscleGroup: 'pernas', sets: 4, reps: '10-12', restTime: 90 },
   { name: 'Cadeira Abdutora', muscleGroup: 'pernas', sets: 3, reps: '15-20', restTime: 60 },
   { name: 'Cadeira Adutora', muscleGroup: 'pernas', sets: 3, reps: '15-20', restTime: 60 },
-  
+
   // Glúteos
   { name: 'Elevação Pélvica', muscleGroup: 'gluteos', sets: 4, reps: '12-15', restTime: 90 },
   { name: 'Agachamento Sumô', muscleGroup: 'gluteos', sets: 3, reps: '12-15', restTime: 90 },
   { name: 'Afundo', muscleGroup: 'gluteos', sets: 3, reps: '10-12', restTime: 90 },
-  
+
   // Panturrilha
   { name: 'Elevação de Panturrilha em Pé', muscleGroup: 'panturrilha', sets: 4, reps: '15-20', restTime: 60 },
   { name: 'Elevação de Panturrilha Sentado', muscleGroup: 'panturrilha', sets: 3, reps: '15-20', restTime: 60 },
-  
+
   // Abdômen
   { name: 'Crunch', muscleGroup: 'abdomen', sets: 4, reps: '20-25', restTime: 45 },
   { name: 'Prancha', muscleGroup: 'abdomen', sets: 3, reps: '30-60s', restTime: 60 },
   { name: 'Elevação de Pernas', muscleGroup: 'abdomen', sets: 3, reps: '15-20', restTime: 45 },
   { name: 'Russian Twist', muscleGroup: 'abdomen', sets: 3, reps: '20-30', restTime: 45 },
-  
+
   // Cardio
   { name: 'Corrida na Esteira', muscleGroup: 'cardio', sets: 1, reps: '20-30min', restTime: 0 },
   { name: 'Bicicleta Ergométrica', muscleGroup: 'cardio', sets: 1, reps: '20-30min', restTime: 0 },
   { name: 'Elíptico', muscleGroup: 'cardio', sets: 1, reps: '20-30min', restTime: 0 },
-    { name: 'Burpees', muscleGroup: 'cardio', sets: 3, reps: '10-15', restTime: 60 },
+  { name: 'Burpees', muscleGroup: 'cardio', sets: 3, reps: '10-15', restTime: 60 },
 
   // Mais exercicios de Peito
   { name: 'Supino Declinado', muscleGroup: 'peito', sets: 3, reps: '8-12', restTime: 90 },
@@ -235,7 +235,8 @@ export const sampleProfile: UserProfile = {
   age: 28,
   height: 178,
   initialWeight: 73.0,
-  targetWeight: 75.0
+  targetWeight: 75.0,
+  experienceLevel: 'iniciante'
 };
 
 // Configuracoes de exemplo

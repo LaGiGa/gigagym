@@ -71,3 +71,24 @@ export default defineConfig([
   },
 ])
 ```
+
+## Groq integration (secure)
+
+This project now uses a server endpoint for Groq calls.
+
+- Frontend calls: `/api/groq-plan` (or `VITE_GROQ_API_ENDPOINT`)
+- API key stays on server: `GROQ_API_KEY`
+
+### Local/dev
+
+1. Set frontend env in `.env`:
+
+```bash
+VITE_GROQ_API_ENDPOINT=/api/groq-plan
+```
+
+2. Set `GROQ_API_KEY` in your serverless provider env (Vercel/Netlify/Cloud).
+
+### Important
+
+Do not place Groq keys in `src/` or any `VITE_*` variable.

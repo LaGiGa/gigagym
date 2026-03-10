@@ -6,19 +6,26 @@ export type TrainingGoal = 'emagrecimento' | 'hipertrofia' | 'manutencao' | 'con
 
 export type WorkoutStatus = 'nao_iniciado' | 'em_andamento' | 'concluido';
 
-export type MuscleGroup = 
-  | 'peito' 
-  | 'costas' 
-  | 'ombros' 
-  | 'biceps' 
-  | 'triceps' 
-  | 'pernas' 
-  | 'gluteos' 
-  | 'panturrilha' 
-  | 'abdomen' 
-  | 'cardio' 
-  | 'full_body' 
+export type MuscleGroup =
+  | 'peito'
+  | 'costas'
+  | 'ombros'
+  | 'biceps'
+  | 'triceps'
+  | 'pernas'
+  | 'gluteos'
+  | 'panturrilha'
+  | 'abdomen'
+  | 'cardio'
+  | 'full_body'
   | 'outro';
+
+export interface ExerciseSet {
+  id: string;
+  reps: number;
+  weight: number;
+  completed: boolean;
+}
 
 export interface Exercise {
   id: string;
@@ -31,6 +38,11 @@ export interface Exercise {
   notes?: string;
   isCustom?: boolean;
   completed?: boolean;
+  // Novas propriedades Pro
+  videoUrl?: string;
+  thumbnailUrl?: string;
+  instructions?: string[];
+  sets_log?: ExerciseSet[];
 }
 
 export interface Workout {
@@ -58,14 +70,39 @@ export interface WeightEntry {
   notes?: string;
 }
 
+// Especialistas
+export type SpecialistType = 'nutrologa' | 'nutricionista' | 'personal';
+
+export interface SpecialistSuggestion {
+  id: string;
+  specialistType: SpecialistType;
+  title: string;
+  content: string;
+  date: string;
+}
+
+export interface SmartPlan {
+  id: string;
+  goal: TrainingGoal;
+  startDate: string;
+  endDate: string;
+  suggestions: SpecialistSuggestion[];
+  diet?: string;
+  supplementation?: string;
+}
+
+export type UserGender = 'masculino' | 'feminino';
+export type UserExperience = 'iniciante' | 'intermediario' | 'avancado';
+
 export interface UserProfile {
   name: string;
   goal: TrainingGoal;
-  gender: 'masculino' | 'feminino';
+  gender: UserGender;
   age: number;
   height: number; // em cm
   initialWeight: number;
   targetWeight?: number;
+  experienceLevel: UserExperience;
 }
 
 export interface AppSettings {
@@ -101,6 +138,8 @@ export interface AppState {
   weightHistory: WeightEntry[];
   bodyMetrics: BodyMetrics;
   customExercises: Exercise[];
+  // Novo estado Smart
+  currentPlan: SmartPlan | null;
 }
 
 // Tipos para cálculos
@@ -117,7 +156,7 @@ export interface BodyFatResult {
 }
 
 export interface BodyMeasurements {
-  gender: 'masculino' | 'feminino';
+  gender: UserGender;
   age: number;
   height: number;
   weight: number;
@@ -125,4 +164,3 @@ export interface BodyMeasurements {
   waist: number;
   hip?: number; // obrigatório para mulheres
 }
-

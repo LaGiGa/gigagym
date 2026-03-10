@@ -4,9 +4,10 @@ import { useCallback } from 'react';
 import { useApp } from '@/store/AppContext';
 import type { Workout, Exercise, DayOfWeek, MuscleGroup } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
+import { enrichExerciseWithSets } from '@/utils/planGenerator';
 
 export function useWorkout() {
-  const { state, setWorkoutForDay, completeWorkout, updateExerciseCompletion, resetWeeklyProgress } = useApp();
+  const { state, setWorkoutForDay, completeWorkout, updateExerciseCompletion, updateExerciseSet, resetWeeklyProgress } = useApp();
 
   /**
    * Cria um novo treino
@@ -22,14 +23,10 @@ export function useWorkout() {
       name,
       muscleGroup,
       notes,
-      exercises: exercises.map(ex => ({
-        ...ex,
-        id: uuidv4(),
-        completed: false
-      })),
+      exercises: exercises.map(ex => enrichExerciseWithSets(ex)),
       status: 'nao_iniciado'
     };
-    
+
     return workout;
   }, []);
 
@@ -58,11 +55,7 @@ export function useWorkout() {
         id: uuidv4(),
         dayOfWeek: toDay,
         status: 'nao_iniciado',
-        exercises: workout.exercises.map(ex => ({
-          ...ex,
-          id: uuidv4(),
-          completed: false
-        })),
+        exercises: workout.exercises.map(ex => enrichExerciseWithSets(ex)),
         completedAt: undefined
       };
       setWorkoutForDay(toDay, duplicatedWorkout);
@@ -87,11 +80,7 @@ export function useWorkout() {
   const addExerciseToWorkout = useCallback((day: DayOfWeek, exercise: Omit<Exercise, 'id'>) => {
     const workout = state.weeklyWorkouts[day];
     if (workout) {
-      const newExercise: Exercise = {
-        ...exercise,
-        id: uuidv4(),
-        completed: false
-      };
+      const newExercise = enrichExerciseWithSets(exercise);
       setWorkoutForDay(day, {
         ...workout,
         exercises: [...workout.exercises, newExercise]
@@ -137,7 +126,7 @@ export function useWorkout() {
       const reorderedExercises = exerciseIds
         .map(id => exerciseMap.get(id))
         .filter((ex): ex is Exercise => ex !== undefined);
-      
+
       setWorkoutForDay(day, {
         ...workout,
         exercises: reorderedExercises
@@ -173,8 +162,17 @@ export function useWorkout() {
    */
   const startWorkout = useCallback((day: DayOfWeek) => {
     const workout = state.weeklyWorkouts[day];
-    if (workout && workout.status === 'nao_iniciado') {
-      setWorkoutForDay(day, { ...workout, status: 'em_andamento' });
+    if (workout && (workout.status === 'nao_iniciado' || workout.status === 'em_andamento')) {
+      const needsEnrichment = workout.exercises.some(ex => !ex.sets_log || ex.sets_log.length === 0);
+
+      if (needsEnrichment) {
+        const enrichedExercises = workout.exercises.map(ex =>
+          ex.sets_log && ex.sets_log.length > 0 ? ex : enrichExerciseWithSets(ex)
+        );
+        setWorkoutForDay(day, { ...workout, status: 'em_andamento', exercises: enrichedExercises });
+      } else if (workout.status === 'nao_iniciado') {
+        setWorkoutForDay(day, { ...workout, status: 'em_andamento' });
+      }
     }
   }, [state.weeklyWorkouts, setWorkoutForDay]);
 
@@ -227,6 +225,7 @@ export function useWorkout() {
     addExerciseToWorkout,
     removeExerciseFromWorkout,
     updateExercise,
+    updateExerciseSet,
     reorderExercises,
     toggleExerciseCompletion,
     markWorkoutAsComplete,

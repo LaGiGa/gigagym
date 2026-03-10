@@ -6,6 +6,7 @@ import { Dashboard } from '@/pages/Dashboard';
 import { Workouts } from '@/pages/Workouts';
 import { Progress } from '@/pages/Progress';
 import { Calculators } from '@/pages/Calculators';
+import { HealthPlan } from '@/pages/HealthPlan';
 import { Profile } from '@/pages/Profile';
 import { Toaster } from '@/components/ui/sonner';
 import { usePWA } from '@/hooks/usePWA';
@@ -119,6 +120,8 @@ function AppContent() {
         return <Workouts />;
       case 'progress':
         return <Progress onNavigate={setActiveTab} />;
+      case 'health':
+        return <HealthPlan />;
       case 'calculators':
         return <Calculators />;
       case 'profile':

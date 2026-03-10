@@ -5,6 +5,7 @@ import type {
   BodyMetrics,
   DayOfWeek,
   Exercise,
+  SmartPlan,
   UserProfile,
   WeightEntry,
   Workout,
@@ -33,6 +34,7 @@ const defaultProfile: UserProfile = {
   name: '',
   goal: 'hipertrofia',
   gender: 'masculino',
+  experienceLevel: 'iniciante',
   age: 0,
   height: 0,
   initialWeight: 0,
@@ -69,6 +71,7 @@ const initialState: AppState = {
   weightHistory: [],
   bodyMetrics: defaultBodyMetrics,
   customExercises: [],
+  currentPlan: null,
 };
 
 type Action =
@@ -89,6 +92,8 @@ type Action =
   | { type: 'RESET_ALL' }
   | { type: 'COMPLETE_WORKOUT'; payload: { day: DayOfWeek; workout: Workout } }
   | { type: 'UPDATE_EXERCISE_COMPLETION'; payload: { day: DayOfWeek; exerciseId: string; completed: boolean } }
+  | { type: 'UPDATE_EXERCISE_SET'; payload: { day: DayOfWeek; exerciseId: string; setId: string; weight: number; reps: number; completed: boolean } }
+  | { type: 'SET_CURRENT_PLAN'; payload: SmartPlan }
   | { type: 'RESET_WEEKLY_PROGRESS' };
 
 function appReducer(state: AppState, action: Action): AppState {
@@ -200,6 +205,57 @@ function appReducer(state: AppState, action: Action): AppState {
       };
     }
 
+    case 'UPDATE_EXERCISE_SET': {
+      const workout = state.weeklyWorkouts[action.payload.day];
+      if (!workout) return state;
+
+      const updatedExercises = workout.exercises.map((ex) => {
+        if (ex.id !== action.payload.exerciseId) return ex;
+
+        let finalSets = (ex.sets_log || []).map((set) =>
+          set.id === action.payload.setId
+            ? { ...set, weight: action.payload.weight, reps: action.payload.reps, completed: action.payload.completed }
+            : set
+        );
+
+        // Se o sets_log nao existir ou o setId for 'initial', vamos inicializar as séries
+        if (finalSets.length === 0 || action.payload.setId === 'initial') {
+          const setsCount = Number(ex.sets) || 3;
+          finalSets = Array.from({ length: setsCount }).map((_, i) => ({
+            id: Math.random().toString(36).substr(2, 9),
+            reps: parseInt(ex.reps) || 12,
+            weight: action.payload.setId === 'initial' && i === 0 ? action.payload.weight : 0,
+            completed: action.payload.setId === 'initial' && i === 0 ? action.payload.completed : false
+          }));
+        }
+
+        const allSetsCompleted = finalSets.length > 0 && finalSets.every((s) => s.completed);
+
+        return {
+          ...ex,
+          sets_log: finalSets,
+          completed: allSetsCompleted,
+        };
+      });
+
+      const allExercisesCompleted = updatedExercises.every((ex) => ex.completed);
+
+      return {
+        ...state,
+        weeklyWorkouts: {
+          ...state.weeklyWorkouts,
+          [action.payload.day]: {
+            ...workout,
+            exercises: updatedExercises,
+            status: allExercisesCompleted ? 'concluido' : 'em_andamento',
+          },
+        },
+      };
+    }
+
+    case 'SET_CURRENT_PLAN':
+      return { ...state, currentPlan: action.payload };
+
     case 'RESET_WEEKLY_PROGRESS': {
       const resetWorkouts: Record<DayOfWeek, Workout | null> = { ...state.weeklyWorkouts };
 
@@ -239,6 +295,8 @@ interface AppContextType {
   addCustomExercise: (exercise: Exercise) => void;
   completeWorkout: (day: DayOfWeek, workout: Workout) => void;
   updateExerciseCompletion: (day: DayOfWeek, exerciseId: string, completed: boolean) => void;
+  updateExerciseSet: (day: DayOfWeek, exerciseId: string, setId: string, weight: number, reps: number, completed: boolean) => void;
+  setCurrentPlan: (plan: SmartPlan) => void;
   resetWeeklyProgress: () => void;
   resetAllData: () => void;
   loadSavedData: () => void;
@@ -268,6 +326,7 @@ export function AppProvider({ children }: AppProviderProps) {
       weightHistory: loaded.weightHistory || [],
       bodyMetrics: { ...initialState.bodyMetrics, ...(loaded.bodyMetrics || {}) },
       customExercises: loaded.customExercises || [],
+      currentPlan: loaded.currentPlan || null,
     };
   }, []);
 
@@ -295,6 +354,7 @@ export function AppProvider({ children }: AppProviderProps) {
       weightHistory: weightHistory || [],
       bodyMetrics: bodyMetrics || defaultBodyMetrics,
       customExercises: customExercises || [],
+      currentPlan: null, // Sera carregado pelo normalize se existir
     };
 
     dispatch({ type: 'LOAD_STATE', payload: normalizeLoadedState(loadedState) });
@@ -375,6 +435,14 @@ export function AppProvider({ children }: AppProviderProps) {
     dispatch({ type: 'UPDATE_EXERCISE_COMPLETION', payload: { day, exerciseId, completed } });
   };
 
+  const updateExerciseSet = (day: DayOfWeek, exerciseId: string, setId: string, weight: number, reps: number, completed: boolean) => {
+    dispatch({ type: 'UPDATE_EXERCISE_SET', payload: { day, exerciseId, setId, weight, reps, completed } });
+  };
+
+  const setCurrentPlan = (plan: SmartPlan) => {
+    dispatch({ type: 'SET_CURRENT_PLAN', payload: plan });
+  };
+
   const resetWeeklyProgress = () => {
     dispatch({ type: 'RESET_WEEKLY_PROGRESS' });
   };
@@ -397,6 +465,8 @@ export function AppProvider({ children }: AppProviderProps) {
     addCustomExercise,
     completeWorkout,
     updateExerciseCompletion,
+    updateExerciseSet,
+    setCurrentPlan,
     resetWeeklyProgress,
     resetAllData,
     loadSavedData: () => {
