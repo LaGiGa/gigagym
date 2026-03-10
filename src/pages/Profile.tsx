@@ -1,6 +1,6 @@
 // P√°gina de Perfil e Configura√ß√µes
 
-import { useState } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import { User, Moon, Sun, Bell, Volume2, Trash2, Download, Upload, ChevronRight, FileJson } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { PageContainer } from '@/components/layout/PageContainer';
@@ -37,6 +37,7 @@ export function Profile() {
   );
   const [targetWeight, setTargetWeight] = useState(isFreshUser ? '' : profile.targetWeight?.toString() || '');
   const [importData, setImportData] = useState('');
+  const [selectedImportFileName, setSelectedImportFileName] = useState('');
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [isForcingBackup, setIsForcingBackup] = useState(false);
 
@@ -90,25 +91,41 @@ export function Profile() {
     toast.success('Backup exportado com sucesso!');
   };
 
-  const handleImport = () => {
-    if (!importData) return;
+  const handleImportFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
     try {
-      const data = JSON.parse(importData);
+      const text = await file.text();
+      setImportData(text);
+      setSelectedImportFileName(file.name);
+      toast.success('Arquivo carregado. Agora confirme a importaÁ„o.');
+    } catch {
+      toast.error('N„o foi possÌvel ler o arquivo selecionado.');
+    }
+  };
+
+  const handleImport = () => {
+    if (!importData.trim()) return;
+
+    try {
+      const normalizedImportData = importData.replace(/^\uFEFF/, '').trim();
+      const data = JSON.parse(normalizedImportData);
       const isWorkoutsOnly = data.type === 'workouts_only' || (!data.profile && data.weeklyWorkouts);
 
-      const success = isWorkoutsOnly ? importWorkoutsOnly(importData) : importAllData(importData);
+      const success = isWorkoutsOnly ? importWorkoutsOnly(normalizedImportData) : importAllData(normalizedImportData);
 
       if (success) {
         toast.success(isWorkoutsOnly ? 'Treinos importados!' : 'Backup total restaurado!');
         setShowImportDialog(false);
         setImportData('');
+        setSelectedImportFileName('');
         setTimeout(() => window.location.reload(), 1000);
       } else {
-        toast.error('O formato do arquivo √© inv√°lido.');
+        toast.error('O formato do arquivo È inv·lido.');
       }
-    } catch (e) {
-      toast.error('JSON inv√°lido.');
+    } catch {
+      toast.error('JSON inv·lido.');
     }
   };
 
@@ -267,8 +284,10 @@ export function Profile() {
           <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
             <Button variant="outline" onClick={() => setShowImportDialog(true)} className="w-full justify-between"><span className="flex items-center"><Upload className="w-4 h-4 mr-2" />Importar Dados (JSON)</span><ChevronRight className="w-4 h-4" /></Button>
             <DialogContent>
-              <DialogHeader><DialogTitle>Importar Dados</DialogTitle><DialogDescription>Cole o conte√∫do do arquivo de backup abaixo. O sistema identificar√° se s√£o apenas treinos ou um backup completo.</DialogDescription></DialogHeader>
+              <DialogHeader><DialogTitle>Importar Dados</DialogTitle><DialogDescription>Selecione o arquivo JSON de backup ou cole o conteudo abaixo. O sistema identifica backup total ou somente treinos.</DialogDescription></DialogHeader>
               <div className="space-y-4 mt-4">
+                <Input type="file" accept="application/json,.json" onChange={handleImportFile} />
+                {selectedImportFileName ? <p className="text-xs text-muted-foreground">Arquivo: {selectedImportFileName}</p> : null}
                 <textarea value={importData} onChange={(e) => setImportData(e.target.value)} placeholder="Cole aqui o JSON de backup..." className="w-full h-32 p-3 rounded-lg border border-border bg-background resize-none text-xs font-mono" />
                 <Button onClick={handleImport} className="w-full bg-lime-500 hover:bg-lime-600" disabled={!importData.trim()}>Importar Agora</Button>
               </div>

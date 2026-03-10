@@ -1,6 +1,7 @@
-// Utilitários de armazenamento local
+// Utilitarios de armazenamento local
 
 import type { AppState, UserProfile, AppSettings, Workout, WeightEntry, Exercise, BodyMetrics } from '@/types';
+
 import { enrichExerciseWithSets } from './planGenerator';
 
 const STORAGE_KEYS = {
@@ -14,6 +15,34 @@ const STORAGE_KEYS = {
   APP_STATE: 'GiGaGym_app_state'
 };
 
+
+const DEFAULT_PROFILE: UserProfile = {
+  name: '',
+  goal: 'hipertrofia',
+  gender: 'masculino',
+  experienceLevel: 'iniciante',
+  age: 0,
+  height: 0,
+  initialWeight: 0,
+  targetWeight: undefined,
+};
+
+const DEFAULT_BODY_METRICS: BodyMetrics = {
+  currentWeight: 0,
+  height: 0,
+  imc: 0,
+  lastUpdated: new Date().toISOString(),
+};
+
+const DEFAULT_WEEKLY_WORKOUTS: Record<string, Workout | null> = {
+  segunda: null,
+  terca: null,
+  quarta: null,
+  quinta: null,
+  sexta: null,
+  sabado: null,
+  domingo: null,
+};
 const IDB_DB_NAME = 'GiGaGym_db';
 const IDB_STORE_NAME = 'kv';
 
@@ -232,31 +261,58 @@ export function saveAppState(state: AppState): void {
   saveToStorage(STORAGE_KEYS.APP_STATE, state);
 }
 
-/**
- * Recupera o estado completo do app
- */
 export function getAppState(): AppState | null {
   return getFromStorage<AppState | null>(STORAGE_KEYS.APP_STATE, null);
+}
+
+
+function getCurrentStateSnapshot(): AppState {
+  const appState = getAppState();
+  const profile = getProfile();
+  const settings = getSettings();
+  const weeklyWorkouts = getWeeklyWorkouts();
+  const workoutHistory = getWorkoutHistory();
+  const weightHistory = getWeightHistory();
+  const bodyMetrics = getBodyMetrics();
+  const customExercises = getCustomExercises();
+
+  return {
+    profile: appState?.profile || profile || DEFAULT_PROFILE,
+    settings: appState?.settings || settings,
+    weeklyWorkouts: {
+      ...DEFAULT_WEEKLY_WORKOUTS,
+      ...(appState?.weeklyWorkouts || weeklyWorkouts || {}),
+    } as AppState['weeklyWorkouts'],
+    workoutHistory: appState?.workoutHistory || workoutHistory || [],
+    weightHistory: appState?.weightHistory || weightHistory || [],
+    bodyMetrics: appState?.bodyMetrics || bodyMetrics || DEFAULT_BODY_METRICS,
+    customExercises: appState?.customExercises || customExercises || [],
+    currentPlan: appState?.currentPlan || null,
+  };
 }
 
 /**
  * Exporta todos os dados para backup
  */
 export function exportAllData(): string {
+  const appState = getCurrentStateSnapshot();
   const data = {
-    profile: getProfile(),
-    settings: getSettings(),
-    weeklyWorkouts: getWeeklyWorkouts(),
-    workoutHistory: getWorkoutHistory(),
-    weightHistory: getWeightHistory(),
-    bodyMetrics: getBodyMetrics(),
-    customExercises: getCustomExercises(),
-    exportDate: new Date().toISOString()
+    profile: appState.profile,
+    settings: appState.settings,
+    weeklyWorkouts: appState.weeklyWorkouts,
+    workoutHistory: appState.workoutHistory,
+    weightHistory: appState.weightHistory,
+    bodyMetrics: appState.bodyMetrics,
+    customExercises: appState.customExercises,
+    currentPlan: appState.currentPlan,
+    appState,
+    exportDate: new Date().toISOString(),
+    version: '2',
+    type: 'full_backup'
   };
 
   return JSON.stringify(data, null, 2);
 }
-
 /**
  * Importa dados de backup
  */
@@ -264,13 +320,36 @@ export function importAllData(jsonData: string): boolean {
   try {
     const data = JSON.parse(jsonData);
 
-    if (data.profile) saveProfile(data.profile);
-    if (data.settings) saveSettings(data.settings);
-    if (data.weeklyWorkouts) saveWeeklyWorkouts(data.weeklyWorkouts);
-    if (data.workoutHistory) saveWorkoutHistory(data.workoutHistory);
-    if (data.weightHistory) saveWeightHistory(data.weightHistory);
-    if (data.bodyMetrics) saveBodyMetrics(data.bodyMetrics);
-    if (data.customExercises) saveCustomExercises(data.customExercises);
+    const baseState = getCurrentStateSnapshot();
+    const importedAppState = data.appState && typeof data.appState === 'object' ? data.appState : data;
+
+    const mergedState: AppState = {
+      ...baseState,
+      ...importedAppState,
+      profile: { ...baseState.profile, ...(importedAppState.profile || data.profile || {}) },
+      settings: { ...baseState.settings, ...(importedAppState.settings || data.settings || {}) },
+      weeklyWorkouts: {
+        ...baseState.weeklyWorkouts,
+        ...(importedAppState.weeklyWorkouts || data.weeklyWorkouts || {}),
+      },
+      workoutHistory: importedAppState.workoutHistory || data.workoutHistory || baseState.workoutHistory,
+      weightHistory: importedAppState.weightHistory || data.weightHistory || baseState.weightHistory,
+      bodyMetrics: {
+        ...baseState.bodyMetrics,
+        ...(importedAppState.bodyMetrics || data.bodyMetrics || {}),
+      },
+      customExercises: importedAppState.customExercises || data.customExercises || baseState.customExercises,
+      currentPlan: importedAppState.currentPlan || data.currentPlan || baseState.currentPlan,
+    };
+
+    saveProfile(mergedState.profile);
+    saveSettings(mergedState.settings);
+    saveWeeklyWorkouts(mergedState.weeklyWorkouts);
+    saveWorkoutHistory(mergedState.workoutHistory);
+    saveWeightHistory(mergedState.weightHistory);
+    saveBodyMetrics(mergedState.bodyMetrics);
+    saveCustomExercises(mergedState.customExercises);
+    saveAppState(mergedState);
 
     return true;
   } catch (error) {
@@ -278,7 +357,6 @@ export function importAllData(jsonData: string): boolean {
     return false;
   }
 }
-
 /**
  * Exporta apenas os treinos
  */
@@ -320,12 +398,29 @@ export function importWorkoutsOnly(jsonData: string): boolean {
       upgradedWorkouts[day] = w;
     });
 
+    const normalizedHistory = history.length > 0
+      ? history.map((w: any) => {
+          if (w.exercises) w.exercises = w.exercises.map(upgradeExercise);
+          return w;
+        })
+      : [];
+    const normalizedCustom = custom.length > 0 ? custom.map(upgradeExercise) : [];
+
     if (Object.keys(upgradedWorkouts).length > 0) saveWeeklyWorkouts(upgradedWorkouts);
-    if (history.length > 0) saveWorkoutHistory(history.map((w: any) => {
-      if (w.exercises) w.exercises = w.exercises.map(upgradeExercise);
-      return w;
-    }));
-    if (custom.length > 0) saveCustomExercises(custom.map(upgradeExercise));
+    if (normalizedHistory.length > 0) saveWorkoutHistory(normalizedHistory);
+    if (normalizedCustom.length > 0) saveCustomExercises(normalizedCustom);
+
+    const baseState = getCurrentStateSnapshot();
+    const mergedState: AppState = {
+      ...baseState,
+      weeklyWorkouts:
+        Object.keys(upgradedWorkouts).length > 0
+          ? { ...baseState.weeklyWorkouts, ...upgradedWorkouts }
+          : baseState.weeklyWorkouts,
+      workoutHistory: normalizedHistory.length > 0 ? normalizedHistory : baseState.workoutHistory,
+      customExercises: normalizedCustom.length > 0 ? normalizedCustom : baseState.customExercises,
+    };
+    saveAppState(mergedState);
 
     return true;
   } catch (error) {
@@ -333,7 +428,6 @@ export function importWorkoutsOnly(jsonData: string): boolean {
     return false;
   }
 }
-
 /**
  * Verifica se há dados salvos
  */
