@@ -1,20 +1,26 @@
-// Service Worker do GiGaGym PWA
+﻿// Service Worker do GiGaGym PWA
 // Estrategia: cache first para assets e network first para navegacao
 
-const BASE_PATH = '/gigagym';
-const CACHE_NAME = 'GiGaGym-v3';
+const SCOPE_PATH = new URL(self.registration.scope).pathname;
+const BASE_PATH = SCOPE_PATH === '/' ? '' : SCOPE_PATH.replace(/\/$/, '');
+const CACHE_NAME = 'GiGaGym-v4';
+
+function withBase(path) {
+  return `${BASE_PATH}${path}`;
+}
+
 const STATIC_ASSETS = [
-  `${BASE_PATH}/`,
-  `${BASE_PATH}/index.html`,
-  `${BASE_PATH}/manifest.json`,
-  `${BASE_PATH}/icons/icon-72x72.png`,
-  `${BASE_PATH}/icons/icon-96x96.png`,
-  `${BASE_PATH}/icons/icon-128x128.png`,
-  `${BASE_PATH}/icons/icon-144x144.png`,
-  `${BASE_PATH}/icons/icon-152x152.png`,
-  `${BASE_PATH}/icons/icon-192x192.png`,
-  `${BASE_PATH}/icons/icon-384x384.png`,
-  `${BASE_PATH}/icons/icon-512x512.png`,
+  withBase('/'),
+  withBase('/index.html'),
+  withBase('/manifest.json'),
+  withBase('/icons/icon-72x72.png'),
+  withBase('/icons/icon-96x96.png'),
+  withBase('/icons/icon-128x128.png'),
+  withBase('/icons/icon-144x144.png'),
+  withBase('/icons/icon-152x152.png'),
+  withBase('/icons/icon-192x192.png'),
+  withBase('/icons/icon-384x384.png'),
+  withBase('/icons/icon-512x512.png'),
 ];
 
 self.addEventListener('install', (event) => {
@@ -46,17 +52,17 @@ self.addEventListener('fetch', (event) => {
       fetch(request)
         .then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
-            caches.open(CACHE_NAME).then((cache) => cache.put(`${BASE_PATH}/index.html`, networkResponse.clone()));
+            caches.open(CACHE_NAME).then((cache) => cache.put(withBase('/index.html'), networkResponse.clone()));
           }
           return networkResponse;
         })
-        .catch(() => caches.match(`${BASE_PATH}/index.html`))
+        .catch(() => caches.match(withBase('/index.html')))
     );
     return;
   }
 
   const isStaticAsset =
-    url.pathname.startsWith(`${BASE_PATH}/assets/`) ||
+    url.pathname.includes('/assets/') ||
     url.pathname.endsWith('.js') ||
     url.pathname.endsWith('.css') ||
     url.pathname.endsWith('.png') ||
@@ -99,10 +105,10 @@ self.addEventListener('sync', (event) => {
 self.addEventListener('push', (event) => {
   const options = {
     body: event.data?.text() || 'Hora do treino!',
-    icon: `${BASE_PATH}/icons/icon-192x192.png`,
-    badge: `${BASE_PATH}/icons/icon-72x72.png`,
+    icon: withBase('/icons/icon-192x192.png'),
+    badge: withBase('/icons/icon-72x72.png'),
     vibrate: [100, 50, 100],
-    data: { url: `${BASE_PATH}/` },
+    data: { url: withBase('/') },
     actions: [
       { action: 'open', title: 'Abrir app' },
       { action: 'dismiss', title: 'Dispensar' },
@@ -115,7 +121,7 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   if (event.action === 'open' || !event.action) {
-    event.waitUntil(clients.openWindow(event.notification.data?.url || `${BASE_PATH}/`));
+    event.waitUntil(clients.openWindow(event.notification.data?.url || withBase('/')));
   }
 });
 
