@@ -11,10 +11,10 @@ export function calculateIMC(weight: number, height: number): IMCCResult {
   const heightInMeters = height / 100;
   const imc = weight / (heightInMeters * heightInMeters);
   const roundedIMC = Math.round(imc * 10) / 10;
-  
+
   let classification: string;
   let color: string;
-  
+
   if (roundedIMC < 18.5) {
     classification = 'Abaixo do peso';
     color = '#f59e0b'; // amarelo
@@ -28,7 +28,7 @@ export function calculateIMC(weight: number, height: number): IMCCResult {
     classification = 'Obesidade';
     color = '#ef4444'; // vermelho
   }
-  
+
   return {
     value: roundedIMC,
     classification,
@@ -43,9 +43,9 @@ export function calculateIMC(weight: number, height: number): IMCCResult {
  */
 export function calculateBodyFat(measurements: BodyMeasurements): BodyFatResult {
   const { gender, height, neck, waist, hip } = measurements;
-  
+
   let bodyFatPercentage: number;
-  
+
   if (gender === 'masculino') {
     // Fórmula para homens
     bodyFatPercentage = (
@@ -64,13 +64,13 @@ export function calculateBodyFat(measurements: BodyMeasurements): BodyFatResult 
       78.387
     );
   }
-  
+
   const roundedBodyFat = Math.round(bodyFatPercentage * 10) / 10;
-  
+
   // Classificação baseada em gênero
   let classification: string;
   let color: string;
-  
+
   if (gender === 'masculino') {
     if (roundedBodyFat < 6) {
       classification = 'Gordura essencial';
@@ -106,7 +106,7 @@ export function calculateBodyFat(measurements: BodyMeasurements): BodyFatResult 
       color = '#ef4444';
     }
   }
-  
+
   return {
     value: roundedBodyFat,
     classification,
@@ -126,13 +126,13 @@ export function calculateBMR(
   gender: 'masculino' | 'feminino'
 ): number {
   let bmr = (10 * weight) + (6.25 * height) - (5 * age);
-  
+
   if (gender === 'masculino') {
     bmr += 5;
   } else {
     bmr -= 161;
   }
-  
+
   return Math.round(bmr);
 }
 
@@ -156,7 +156,7 @@ export function calculateTDEE(
     muito: 1.725,
     extremo: 1.9
   };
-  
+
   return Math.round(bmr * multipliers[activityLevel]);
 }
 
@@ -187,10 +187,10 @@ export function calculateWeightDifference(
 } {
   const difference = currentWeight - targetWeight;
   const isGoalReached = Math.abs(difference) <= 0.5;
-  
+
   // Progresso baseado na distância inicial (assumindo 10kg como referência máxima)
   const progress = Math.min(100, Math.max(0, 100 - (Math.abs(difference) / 10) * 100));
-  
+
   return {
     difference: Math.round(difference * 10) / 10,
     isGoalReached,
@@ -215,12 +215,12 @@ export function calculateWorkoutVolume(
 export function formatRestTime(seconds: number): string {
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
-  
+
   if (minutes === 0) {
     return `${remainingSeconds}s`;
   }
-  
-    return `${minutes}min ${remainingSeconds}s`;
+
+  return `${minutes}min ${remainingSeconds}s`;
 }
 
 /**
@@ -229,12 +229,12 @@ export function formatRestTime(seconds: number): string {
 export function formatDuration(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
-  
+
   if (hours === 0) {
     return `${remainingMinutes}min`;
   }
-  
-    return `${hours}h ${remainingMinutes}min`;
+
+  return `${hours}h ${remainingMinutes}min`;
 }
 
 /**
@@ -255,7 +255,7 @@ export function getMotivationalQuote(): string {
     '⚡ Não pare quando estiver cansado, pare quando terminar!',
     '🏆 A dor de hoje é a força de amanhã!'
   ];
-  
+
   return quotes[Math.floor(Math.random() * quotes.length)];
 }
 
@@ -277,7 +277,7 @@ export function getMuscleGroupName(muscleGroup: string): string {
     full_body: 'Full Body',
     outro: 'Outro'
   };
-  
+
   return names[muscleGroup] || muscleGroup;
 }
 
@@ -294,7 +294,7 @@ export function getDayName(day: string): string {
     sabado: 'Sábado',
     domingo: 'Domingo'
   };
-  
+
   return days[day] || day;
 }
 
@@ -308,8 +308,15 @@ export function getGoalName(goal: string): string {
     manutencao: 'Manutenção',
     condicionamento: 'Condicionamento'
   };
-  
+
   return goals[goal] || goal;
+}
+
+/**
+ * Retorna o nome do objetivo de treino (Alias)
+ */
+export function getTrainingGoalName(goal: string): string {
+  return getGoalName(goal);
 }
 
 /**
@@ -330,6 +337,6 @@ export function getMuscleGroupEmoji(muscleGroup: string): string {
     full_body: '🏋️',
     outro: '⚡'
   };
-  
+
   return emojis[muscleGroup] || '💪';
 }

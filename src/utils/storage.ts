@@ -1,6 +1,7 @@
 // Utilitários de armazenamento local
 
 import type { AppState, UserProfile, AppSettings, Workout, WeightEntry, Exercise, BodyMetrics } from '@/types';
+import { enrichExerciseWithSets } from './planGenerator';
 
 const STORAGE_KEYS = {
   PROFILE: 'GiGaGym_profile',
@@ -252,7 +253,7 @@ export function exportAllData(): string {
     customExercises: getCustomExercises(),
     exportDate: new Date().toISOString()
   };
-  
+
   return JSON.stringify(data, null, 2);
 }
 
@@ -262,7 +263,7 @@ export function exportAllData(): string {
 export function importAllData(jsonData: string): boolean {
   try {
     const data = JSON.parse(jsonData);
-    
+
     if (data.profile) saveProfile(data.profile);
     if (data.settings) saveSettings(data.settings);
     if (data.weeklyWorkouts) saveWeeklyWorkouts(data.weeklyWorkouts);
@@ -270,10 +271,65 @@ export function importAllData(jsonData: string): boolean {
     if (data.weightHistory) saveWeightHistory(data.weightHistory);
     if (data.bodyMetrics) saveBodyMetrics(data.bodyMetrics);
     if (data.customExercises) saveCustomExercises(data.customExercises);
-    
+
     return true;
   } catch (error) {
     console.error('Erro ao importar dados:', error);
+    return false;
+  }
+}
+
+/**
+ * Exporta apenas os treinos
+ */
+export function exportWorkoutsOnly(): string {
+  const data = {
+    weeklyWorkouts: getWeeklyWorkouts(),
+    workoutHistory: getWorkoutHistory(),
+    customExercises: getCustomExercises(),
+    exportDate: new Date().toISOString(),
+    type: 'workouts_only'
+  };
+  return JSON.stringify(data, null, 2);
+}
+
+/**
+ * Importa apenas os treinos com retrocompatibilidade
+ */
+export function importWorkoutsOnly(jsonData: string): boolean {
+  try {
+    const data = JSON.parse(jsonData);
+
+    // Suporte a diferentes formatos de exportação (antigos e novos)
+    const rawWorkouts = data.weeklyWorkouts || data.workouts || {};
+    const history = data.workoutHistory || [];
+    const custom = data.customExercises || [];
+
+    // Função interna para "upar" exercícios antigos
+    const upgradeExercise = (ex: any): Exercise => {
+      return enrichExerciseWithSets(ex);
+    };
+
+    // Processar treinos semanais
+    const upgradedWorkouts: Record<string, Workout | null> = {};
+    Object.keys(rawWorkouts).forEach(day => {
+      const w = rawWorkouts[day];
+      if (w && w.exercises) {
+        w.exercises = w.exercises.map(upgradeExercise);
+      }
+      upgradedWorkouts[day] = w;
+    });
+
+    if (Object.keys(upgradedWorkouts).length > 0) saveWeeklyWorkouts(upgradedWorkouts);
+    if (history.length > 0) saveWorkoutHistory(history.map((w: any) => {
+      if (w.exercises) w.exercises = w.exercises.map(upgradeExercise);
+      return w;
+    }));
+    if (custom.length > 0) saveCustomExercises(custom.map(upgradeExercise));
+
+    return true;
+  } catch (error) {
+    console.error('Erro ao importar treinos:', error);
     return false;
   }
 }

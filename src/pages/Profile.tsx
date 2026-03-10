@@ -1,7 +1,7 @@
 // Página de Perfil e Configurações
 
 import { useState } from 'react';
-import { User, Moon, Sun, Bell, Volume2, Trash2, Download, Upload, ChevronRight } from 'lucide-react';
+import { User, Moon, Sun, Bell, Volume2, Trash2, Download, Upload, ChevronRight, FileJson } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { Card } from '@/components/ui/card';
@@ -15,15 +15,20 @@ import { useApp } from '@/store/AppContext';
 import { usePWA } from '@/hooks/usePWA';
 import type { TrainingGoal } from '@/types';
 import { getGoalName } from '@/utils/calculations';
-import { exportAllData, importAllData } from '@/utils/storage';
-import { cn } from '@/lib/utils';
+import {
+  exportAllData,
+  importAllData,
+  exportWorkoutsOnly,
+  importWorkoutsOnly
+} from '@/utils/storage';
+import { toast } from 'sonner';
 
 export function Profile() {
   const { state, updateProfile, updateSettings, resetAllData, forceLocalBackup, lastLocalSaveAt, addWeightEntry } = useApp();
   const { promptInstall, isInstallable, isInstalled } = usePWA();
   const { profile, settings } = state;
   const isFreshUser = state.weightHistory.length === 0 && !profile.name.trim();
-  
+
   const [name, setName] = useState(profile.name);
   const [age, setAge] = useState(isFreshUser ? '' : profile.age.toString());
   const [height, setHeight] = useState(isFreshUser ? '' : profile.height.toString());
@@ -39,16 +44,17 @@ export function Profile() {
     const parsedAge = parseInt(age, 10);
     const parsedHeight = parseFloat(height);
     const parsedCurrentWeight = parseFloat(currentWeight);
+
     if (!Number.isFinite(parsedAge) || parsedAge <= 0) {
-      alert('Informe uma idade valida.');
+      toast.error('Informe uma idade válida.');
       return;
     }
     if (!Number.isFinite(parsedHeight) || parsedHeight <= 0) {
-      alert('Informe uma altura valida.');
+      toast.error('Informe uma altura válida.');
       return;
     }
     if (!Number.isFinite(parsedCurrentWeight) || parsedCurrentWeight <= 0) {
-      alert('Informe um peso atual valido.');
+      toast.error('Informe um peso atual válido.');
       return;
     }
 
@@ -68,30 +74,41 @@ export function Profile() {
         notes: 'Atualizado no perfil',
       });
     }
+
+    toast.success('Perfil atualizado!');
   };
 
-  const handleExport = () => {
-    const data = exportAllData();
+  const handleExport = (type: 'all' | 'workouts') => {
+    const data = type === 'all' ? exportAllData() : exportWorkoutsOnly();
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `GiGaGym-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `GiGaGym-${type === 'all' ? 'backup' : 'treinos'}-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    toast.success('Backup exportado com sucesso!');
   };
 
   const handleImport = () => {
-    if (importData) {
-      const success = importAllData(importData);
+    if (!importData) return;
+
+    try {
+      const data = JSON.parse(importData);
+      const isWorkoutsOnly = data.type === 'workouts_only' || (!data.profile && data.weeklyWorkouts);
+
+      const success = isWorkoutsOnly ? importWorkoutsOnly(importData) : importAllData(importData);
+
       if (success) {
-        alert('Dados importados com sucesso!');
+        toast.success(isWorkoutsOnly ? 'Treinos importados!' : 'Backup total restaurado!');
         setShowImportDialog(false);
         setImportData('');
-        window.location.reload();
+        setTimeout(() => window.location.reload(), 1000);
       } else {
-        alert('Erro ao importar dados. Verifique o formato do arquivo.');
+        toast.error('O formato do arquivo é inválido.');
       }
+    } catch (e) {
+      toast.error('JSON inválido.');
     }
   };
 
@@ -107,9 +124,9 @@ export function Profile() {
     const ok = await forceLocalBackup();
     setIsForcingBackup(false);
     if (ok) {
-      alert('Backup local realizado com sucesso.');
+      toast.success('Backup local realizado com sucesso.');
     } else {
-      alert('Nao foi possivel realizar o backup local.');
+      toast.error('Não foi possível realizar o backup local.');
     }
   };
 
@@ -162,11 +179,15 @@ export function Profile() {
             </Select>
           </div>
           <div>
-            <Label>Sexo</Label>
-            <div className="flex gap-2 mt-2">
-              <Button type="button" variant={profile.gender === 'masculino' ? 'default' : 'outline'} onClick={() => updateProfile({ gender: 'masculino' })} className={cn('flex-1', profile.gender === 'masculino' && 'bg-lime-500 hover:bg-lime-600')}>Masculino</Button>
-              <Button type="button" variant={profile.gender === 'feminino' ? 'default' : 'outline'} onClick={() => updateProfile({ gender: 'feminino' })} className={cn('flex-1', profile.gender === 'feminino' && 'bg-lime-500 hover:bg-lime-600')}>Feminino</Button>
-            </div>
+            <Label>Nível de Experiência</Label>
+            <Select value={profile.experienceLevel} onValueChange={(value: any) => updateProfile({ experienceLevel: value })}>
+              <SelectTrigger className="mt-2"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="iniciante">Iniciante</SelectItem>
+                <SelectItem value="intermediario">Intermediário</SelectItem>
+                <SelectItem value="avancado">Avançado</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <Button onClick={handleSaveProfile} className="w-full bg-lime-500 hover:bg-lime-600">Salvar Alterações</Button>
         </Card>
@@ -217,27 +238,39 @@ export function Profile() {
       )}
 
       <div className="mb-6">
-        <h3 className="text-lg font-semibold mb-3">Backup</h3>
+        <h3 className="text-lg font-semibold mb-3">Backup e Dados</h3>
         <Card className="p-4 space-y-3">
           <div className="rounded-xl border border-border bg-muted/30 p-3">
             <p className="text-sm font-medium">Dados salvos localmente</p>
             <p className="text-xs text-muted-foreground mt-1">
               {lastLocalSaveAt
-                ? `Ultimo salvamento: ${new Date(lastLocalSaveAt).toLocaleString('pt-BR')}`
-                : 'Salvamento local ainda nao confirmado nesta sessao.'}
+                ? `Último salvamento: ${new Date(lastLocalSaveAt).toLocaleString('pt-BR')}`
+                : 'Salvamento local ainda não confirmado nesta sessão.'}
             </p>
           </div>
+
           <Button onClick={handleForceBackup} className="w-full" disabled={isForcingBackup}>
-            {isForcingBackup ? 'Salvando...' : 'Forcar backup local'}
+            {isForcingBackup ? 'Salvando...' : 'Forçar backup local'}
           </Button>
-          <Button variant="outline" onClick={handleExport} className="w-full justify-between"><span className="flex items-center"><Download className="w-4 h-4 mr-2" />Exportar Dados</span><ChevronRight className="w-4 h-4" /></Button>
+
+          <div className="grid grid-cols-2 gap-2 mt-4">
+            <Button variant="outline" onClick={() => handleExport('workouts')} className="flex-col h-auto py-3 gap-2">
+              <FileJson className="w-5 h-5" />
+              <span className="text-[10px] uppercase font-bold">Exportar Treinos</span>
+            </Button>
+            <Button variant="outline" onClick={() => handleExport('all')} className="flex-col h-auto py-3 gap-2">
+              <Download className="w-5 h-5" />
+              <span className="text-[10px] uppercase font-bold">Backup Total</span>
+            </Button>
+          </div>
+
           <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
-            <Button variant="outline" onClick={() => setShowImportDialog(true)} className="w-full justify-between"><span className="flex items-center"><Upload className="w-4 h-4 mr-2" />Importar Dados</span><ChevronRight className="w-4 h-4" /></Button>
+            <Button variant="outline" onClick={() => setShowImportDialog(true)} className="w-full justify-between"><span className="flex items-center"><Upload className="w-4 h-4 mr-2" />Importar Dados (JSON)</span><ChevronRight className="w-4 h-4" /></Button>
             <DialogContent>
-              <DialogHeader><DialogTitle>Importar Dados</DialogTitle><DialogDescription>Cole o conteúdo do arquivo de backup abaixo.</DialogDescription></DialogHeader>
+              <DialogHeader><DialogTitle>Importar Dados</DialogTitle><DialogDescription>Cole o conteúdo do arquivo de backup abaixo. O sistema identificará se são apenas treinos ou um backup completo.</DialogDescription></DialogHeader>
               <div className="space-y-4 mt-4">
-                <textarea value={importData} onChange={(e) => setImportData(e.target.value)} placeholder="Cole aqui o JSON de backup..." className="w-full h-32 p-3 rounded-lg border border-border bg-background resize-none" />
-                <Button onClick={handleImport} className="w-full bg-lime-500 hover:bg-lime-600" disabled={!importData}>Importar</Button>
+                <textarea value={importData} onChange={(e) => setImportData(e.target.value)} placeholder="Cole aqui o JSON de backup..." className="w-full h-32 p-3 rounded-lg border border-border bg-background resize-none text-xs font-mono" />
+                <Button onClick={handleImport} className="w-full bg-lime-500 hover:bg-lime-600" disabled={!importData.trim()}>Importar Agora</Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -251,8 +284,7 @@ export function Profile() {
         </Card>
       </div>
 
-      <p className="text-center text-xs text-muted-foreground pb-4">By Laércio v1.0.0</p>
+      <p className="text-center text-xs text-muted-foreground pb-4">By Laércio v1.1.0 • Groq Inside</p>
     </PageContainer>
   );
 }
-

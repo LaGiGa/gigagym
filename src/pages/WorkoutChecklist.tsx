@@ -1,9 +1,9 @@
 // Página de Checklist do Treino
 
 import { useState, useEffect } from 'react';
-import { 
-  Play, 
-  RotateCcw, 
+import {
+  Play,
+  RotateCcw,
   Timer,
   ChevronLeft,
   Trophy
@@ -24,36 +24,37 @@ interface WorkoutChecklistProps {
 }
 
 export function WorkoutChecklist({ day = 'segunda', onBack }: WorkoutChecklistProps) {
-  const { 
-    getWorkoutForDay, 
-    toggleExerciseCompletion, 
+  const {
+    getWorkoutForDay,
+    toggleExerciseCompletion,
+    updateExerciseSet,
     markWorkoutAsComplete,
     startWorkout
   } = useWorkout();
-  
+
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
-  
+
   const workout = getWorkoutForDay(day);
-  
+
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
-    
+
     if (isTimerRunning) {
       interval = setInterval(() => {
         setElapsedTime(prev => prev + 1);
       }, 1000);
     }
-    
+
     return () => clearInterval(interval);
   }, [isTimerRunning]);
-  
+
   useEffect(() => {
     if (workout?.status === 'em_andamento' && !isTimerRunning) {
       setIsTimerRunning(true);
     }
   }, [workout?.status, isTimerRunning]);
-  
+
   if (!workout) {
     return (
       <PageContainer>
@@ -66,26 +67,26 @@ export function WorkoutChecklist({ day = 'segunda', onBack }: WorkoutChecklistPr
       </PageContainer>
     );
   }
-  
+
   const completedExercises = workout.exercises.filter(ex => ex.completed).length;
   const totalExercises = workout.exercises.length;
   const progress = totalExercises > 0 ? (completedExercises / totalExercises) * 100 : 0;
   const allCompleted = completedExercises === totalExercises && totalExercises > 0;
-  
+
   const handleToggleExercise = (exerciseId: string) => {
     toggleExerciseCompletion(day, exerciseId);
   };
-  
+
   const handleStartWorkout = () => {
     startWorkout(day);
     setIsTimerRunning(true);
   };
-  
+
   const handleCompleteWorkout = () => {
     markWorkoutAsComplete(day);
     setIsTimerRunning(false);
   };
-  
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -96,7 +97,7 @@ export function WorkoutChecklist({ day = 'segunda', onBack }: WorkoutChecklistPr
     <PageContainer hasBottomNav={false}>
       {/* Header */}
       <div className="flex items-center gap-3 mb-4">
-        <button 
+        <button
           onClick={onBack}
           className="p-2 -ml-2 rounded-xl hover:bg-accent transition-colors"
         >
@@ -118,7 +119,7 @@ export function WorkoutChecklist({ day = 'segunda', onBack }: WorkoutChecklistPr
           <ProgressRing progress={progress} size={80} strokeWidth={6}>
             <span className="text-xl font-bold">{Math.round(progress)}%</span>
           </ProgressRing>
-          
+
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <span className="text-2xl">{getMuscleGroupEmoji(workout.muscleGroup)}</span>
@@ -131,7 +132,7 @@ export function WorkoutChecklist({ day = 'segunda', onBack }: WorkoutChecklistPr
                 </p>
               </div>
             </div>
-            
+
             {isTimerRunning && (
               <div className="flex items-center gap-2 mt-2 text-amber-500">
                 <Timer className="w-4 h-4" />
@@ -144,7 +145,7 @@ export function WorkoutChecklist({ day = 'segunda', onBack }: WorkoutChecklistPr
 
       {/* Ações */}
       {workout.status === 'nao_iniciado' && (
-        <Button 
+        <Button
           onClick={handleStartWorkout}
           className="w-full mb-4 bg-lime-500 hover:bg-lime-600 h-12"
         >
@@ -152,9 +153,9 @@ export function WorkoutChecklist({ day = 'segunda', onBack }: WorkoutChecklistPr
           Iniciar Treino
         </Button>
       )}
-      
+
       {workout.status === 'em_andamento' && allCompleted && (
-        <Button 
+        <Button
           onClick={handleCompleteWorkout}
           className="w-full mb-4 bg-lime-500 hover:bg-lime-600 h-12"
         >
@@ -162,7 +163,7 @@ export function WorkoutChecklist({ day = 'segunda', onBack }: WorkoutChecklistPr
           Finalizar Treino
         </Button>
       )}
-      
+
       {workout.status === 'concluido' && (
         <Card className="p-4 mb-4 bg-lime-500/10 border-lime-500/30">
           <div className="flex items-center gap-3">
@@ -183,12 +184,14 @@ export function WorkoutChecklist({ day = 'segunda', onBack }: WorkoutChecklistPr
       <div className="mb-4">
         <h3 className="text-lg font-semibold mb-3">Exercícios</h3>
         <div className="space-y-2">
-          {workout.exercises.map((exercise, index) => (
+          {workout.exercises.map((exercise) => (
             <ExerciseItem
               key={exercise.id}
               exercise={exercise}
-              index={index}
               isChecklist
+              onUpdateSet={(setId, weight, reps, completed) =>
+                updateExerciseSet(day, exercise.id, setId, weight, reps, completed)
+              }
               onToggleComplete={() => handleToggleExercise(exercise.id)}
             />
           ))}

@@ -1,4 +1,4 @@
-import { Calculator, Dumbbell, Home, TrendingUp, User } from 'lucide-react';
+import { Heart, Dumbbell, Home, TrendingUp, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface BottomNavProps {
@@ -16,7 +16,7 @@ const navItems: NavItem[] = [
   { id: 'dashboard', label: 'Inicio', icon: Home },
   { id: 'workouts', label: 'Treinos', icon: Dumbbell },
   { id: 'progress', label: 'Progresso', icon: TrendingUp },
-  { id: 'calculators', label: 'Saude', icon: Calculator },
+  { id: 'health', label: 'Plano', icon: Heart },
   { id: 'profile', label: 'Perfil', icon: User },
 ];
 
