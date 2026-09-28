@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Copy, Edit3, MoreVertical, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, Copy, Edit3, MoreVertical, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { DaySelector } from '@/components/custom/DaySelector';
@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -25,7 +26,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useWorkout } from '@/hooks/useWorkout';
 import { predefinedExercises } from '@/utils/mockData';
-import { getDayName, getMuscleGroupName } from '@/utils/calculations';
+import { getDayName, getMuscleGroupName, getMuscleGroupEmoji } from '@/utils/calculations';
+import { cn } from '@/lib/utils';
 import type { DayOfWeek, Exercise, MuscleGroup, Workout } from '@/types';
 
 interface BuilderExercise {
@@ -59,6 +61,8 @@ export function Workouts() {
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<MuscleGroup>('peito');
   const [builderExercises, setBuilderExercises] = useState<BuilderExercise[]>([]);
   const [builderCustomExerciseName, setBuilderCustomExerciseName] = useState('');
+  const [customWorkoutName, setCustomWorkoutName] = useState('');
+  const [exerciseSearchTerm, setExerciseSearchTerm] = useState('');
 
   const [editName, setEditName] = useState('');
   const [editNotes, setEditNotes] = useState('');
@@ -73,6 +77,13 @@ export function Workouts() {
     setEditNotes(currentWorkout.notes || '');
     setEditExerciseGroup(currentWorkout.muscleGroup || 'peito');
   }, [showEditDialog, currentWorkout]);
+
+  useEffect(() => {
+    if (showAddDialog) {
+      setCustomWorkoutName(`Treino de ${getDayName(selectedDay)}`);
+      setExerciseSearchTerm('');
+    }
+  }, [showAddDialog, selectedDay]);
 
   const hasWorkoutMap = Object.keys(weeklyWorkouts).reduce((acc, day) => {
     acc[day as DayOfWeek] = hasWorkout(day as DayOfWeek);
@@ -100,7 +111,18 @@ export function Workouts() {
     [selectedMuscleGroup]
   );
 
-  const muscleGroups: MuscleGroup[] = ['peito', 'costas', 'ombros', 'biceps', 'triceps', 'pernas', 'abdomen', 'cardio'];
+  const muscleGroups: MuscleGroup[] = [
+    'peito',
+    'costas',
+    'ombros',
+    'biceps',
+    'triceps',
+    'pernas',
+    'gluteos',
+    'panturrilha',
+    'abdomen',
+    'cardio',
+  ];
 
   const handleDuplicateWorkout = (fromDay: DayOfWeek) => {
     duplicateWorkout(fromDay, selectedDay);
@@ -138,9 +160,12 @@ export function Workouts() {
     setNewExerciseName('');
   };
 
-  const addExerciseToBuilder = (exercise: Omit<Exercise, 'id'>) => {
+  const toggleExerciseInBuilder = (exercise: Omit<Exercise, 'id'>) => {
     setBuilderExercises((prev) => {
-      if (prev.some((item) => item.name === exercise.name)) return prev;
+      const exists = prev.some((item) => item.name === exercise.name);
+      if (exists) {
+        return prev.filter((item) => item.name !== exercise.name);
+      }
       return [
         ...prev,
         {
@@ -194,7 +219,7 @@ export function Workouts() {
 
   const handleCreateCustomWorkout = () => {
     if (builderExercises.length === 0) {
-      alert('Selecione pelo menos um exercicio para montar o treino.');
+      alert('Selecione pelo menos um exercício para montar o treino.');
       return;
     }
 
@@ -204,7 +229,7 @@ export function Workouts() {
 
     const newWorkout: Workout = {
       id: uuidv4(),
-      name: `Treino de ${getDayName(selectedDay)}`,
+      name: customWorkoutName.trim() || `Treino de ${getDayName(selectedDay)}`,
       muscleGroup: workoutMuscleGroup,
       notes: 'Treino personalizado premium',
       status: 'nao_iniciado',
@@ -268,6 +293,10 @@ export function Workouts() {
                   <Edit3 className="w-4 h-4 mr-2" />
                   Editar treino
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowAddDialog(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Substituir por novo treino
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => removeWorkoutFromDay(selectedDay)}>
                   <Trash2 className="w-4 h-4 mr-2" />
                   Remover treino
@@ -279,34 +308,61 @@ export function Workouts() {
           <WorkoutCard workout={currentWorkout} onClick={() => handleOpenChecklist(selectedDay)} onStart={handleStartWorkout} />
 
           <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-            <DialogContent className="max-h-[85dvh] overflow-y-auto overflow-x-hidden p-4 sm:p-6">
-              <DialogHeader>
-                <DialogTitle>Editar treino do dia</DialogTitle>
-              </DialogHeader>
+            <DialogContent className="sm:max-w-xl max-h-[92dvh] sm:max-h-[88vh] p-0 flex flex-col overflow-hidden">
+              <div className="p-4 sm:p-5 border-b border-border/70 shrink-0 pr-10">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-lg">
+                    <Edit3 className="w-5 h-5 text-primary shrink-0" />
+                    <span>Editar Treino do Dia</span>
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-muted-foreground text-left">
+                    {getDayName(selectedDay)}
+                  </DialogDescription>
+                </DialogHeader>
+              </div>
 
-              <div className="space-y-4 mt-2">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
                 <div>
-                  <Label>Nome do treino</Label>
-                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Nome do treino
+                  </Label>
+                  <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="mt-1" />
                 </div>
 
                 <div>
-                  <Label>Observacoes</Label>
-                  <Textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} rows={3} />
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Observações
+                  </Label>
+                  <Textarea
+                    value={editNotes}
+                    onChange={(e) => setEditNotes(e.target.value)}
+                    rows={2}
+                    className="mt-1 resize-none"
+                  />
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Exercicios atuais</Label>
-                  <div className="space-y-2">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Exercícios atuais ({currentWorkout.exercises.length})
+                  </Label>
+                  <div className="space-y-1.5">
                     {currentWorkout.exercises.map((exercise) => (
-                      <div key={exercise.id} className="flex items-center justify-between rounded-xl border border-border/70 bg-card/80 px-3 py-2">
-                        <div>
-                          <p className="font-medium text-sm">{exercise.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {exercise.sets}x{exercise.reps}
+                      <div
+                        key={exercise.id}
+                        className="flex items-center justify-between rounded-xl border border-border/70 bg-card/80 px-3 py-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-semibold text-xs sm:text-sm truncate">{exercise.name}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {exercise.sets} séries × {exercise.reps} {exercise.restTime ? `• ${exercise.restTime}s desc` : ''}
                           </p>
                         </div>
-                        <Button variant="ghost" size="icon-sm" onClick={() => removeExerciseFromWorkout(selectedDay, exercise.id)}>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => removeExerciseFromWorkout(selectedDay, exercise.id)}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
+                        >
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
@@ -314,59 +370,92 @@ export function Workouts() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Adicionar exercicio rapido</Label>
-                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                <div className="space-y-3 rounded-xl border border-border/70 p-3 sm:p-4 bg-card/60">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Adicionar Exercício ao Treino
+                  </Label>
+
+                  {/* Muscle group chips wrapped so all options including Cardio and Abdômen are visible! */}
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {muscleGroups.map((group) => (
                       <button
                         key={`edit-group-${group}`}
                         type="button"
                         onClick={() => setEditExerciseGroup(group)}
-                        className={`rounded-full border px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
+                        className={cn(
+                          "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all active:scale-95",
                           editExerciseGroup === group
-                            ? 'bg-primary text-primary-foreground border-primary'
-                            : 'bg-card border-border/70 hover:bg-accent/20'
-                        }`}
+                            ? "bg-primary text-primary-foreground font-semibold shadow-xs ring-2 ring-primary/30"
+                            : "bg-card border border-border/70 text-foreground/80 hover:bg-accent/20"
+                        )}
                       >
-                        {getMuscleGroupName(group)}
+                        <span>{getMuscleGroupEmoji(group)}</span>
+                        <span>{getMuscleGroupName(group)}</span>
                       </button>
                     ))}
                   </div>
+
                   <div className="flex gap-2">
                     <Input
                       value={newExerciseName}
                       onChange={(e) => setNewExerciseName(e.target.value)}
                       placeholder={`Ex: ${getMuscleGroupName(editExerciseGroup)} personalizado`}
+                      className="text-xs sm:text-sm"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddExercise();
+                        }
+                      }}
                     />
-                    <Button onClick={handleAddExercise}>
-                      <Plus className="w-4 h-4" />
+                    <Button onClick={handleAddExercise} size="sm" className="shrink-0">
+                      <Plus className="w-4 h-4 mr-1" />
+                      Adicionar
                     </Button>
                   </div>
-                </div>
 
-                {availableExercises.length > 0 && (
-                  <div className="space-y-2">
-                    <Label>Biblioteca ({getMuscleGroupName(editExerciseGroup)})</Label>
-                    <div className="grid grid-cols-1 gap-2">
-                      {availableExercises.slice(0, 8).map((exercise) => (
-                        <button
-                          key={exercise.name}
-                          onClick={() =>
-                            addExerciseToWorkout(selectedDay, {
-                              ...exercise,
-                              notes: exercise.notes,
-                            })
-                          }
-                          className="rounded-xl border border-border/70 bg-card/70 px-3 py-2 text-left text-sm hover:bg-accent/20"
-                        >
-                          {exercise.name}
-                        </button>
-                      ))}
+                  {availableExercises.length > 0 && (
+                    <div className="space-y-1.5">
+                      <p className="text-[11px] text-muted-foreground font-medium">
+                        Biblioteca de {getMuscleGroupName(editExerciseGroup)}:
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-36 overflow-y-auto pr-1">
+                        {availableExercises.map((exercise) => (
+                          <button
+                            key={exercise.name}
+                            type="button"
+                            onClick={() =>
+                              addExerciseToWorkout(selectedDay, {
+                                ...exercise,
+                                notes: exercise.notes,
+                              })
+                            }
+                            className="rounded-lg border border-border/70 bg-card/70 px-2.5 py-1.5 text-left text-xs hover:bg-accent/20 hover:border-primary/40 flex items-center justify-between"
+                          >
+                            <span className="truncate">{exercise.name}</span>
+                            <span className="text-[10px] text-primary shrink-0 ml-1">+ Add</span>
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
+              </div>
 
-                <Button onClick={handleSaveWorkoutEdit} className="w-full bg-primary hover:bg-primary/90">
+              <div className="p-3 sm:p-4 border-t border-border/70 bg-background/95 backdrop-blur-xs shrink-0 flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowEditDialog(false)}
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleSaveWorkoutEdit}
+                  className="flex-1 bg-primary hover:bg-primary/90 font-semibold"
+                >
                   Salvar treino
                 </Button>
               </div>
@@ -388,105 +477,248 @@ export function Workouts() {
                   Adicionar treino
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-h-[88dvh] overflow-y-auto overflow-x-hidden p-4 sm:p-6">
-                <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-primary" />
-                    Criar treino personalizado
-                  </DialogTitle>
-                </DialogHeader>
+              <DialogContent className="sm:max-w-xl max-h-[92dvh] sm:max-h-[88vh] p-0 flex flex-col overflow-hidden">
+                <div className="p-4 sm:p-5 border-b border-border/70 shrink-0 pr-10">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-lg">
+                      <Sparkles className="w-5 h-5 text-primary shrink-0" />
+                      <span>Criar Treino Personalizado</span>
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-muted-foreground text-left">
+                      Dia selecionado: <span className="font-semibold text-foreground">{getDayName(selectedDay)}</span>
+                    </DialogDescription>
+                  </DialogHeader>
+                </div>
 
-                <div className="mt-3 space-y-4 overflow-x-hidden">
-                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-                    {muscleGroups.map((group) => (
-                      <button
-                        key={group}
-                        onClick={() => setSelectedMuscleGroup(group)}
-                        className={`rounded-full border px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
-                          selectedMuscleGroup === group
-                            ? 'bg-primary text-primary-foreground border-primary'
-                            : 'bg-card border-border/70 hover:bg-accent/20'
-                        }`}
-                      >
-                        {getMuscleGroupName(group)}
-                      </button>
-                    ))}
+                <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+                  {/* Nome do treino */}
+                  <div>
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      Nome do Treino
+                    </Label>
+                    <Input
+                      value={customWorkoutName}
+                      onChange={(e) => setCustomWorkoutName(e.target.value)}
+                      placeholder={`Ex: Treino de ${getDayName(selectedDay)}`}
+                      className="mt-1"
+                    />
                   </div>
 
-                  <div className="rounded-xl border border-border/70 p-3 space-y-3 bg-card/80 text-left">
-                    <p className="text-sm font-semibold">Montar treino personalizado</p>
+                  {/* Grupo Muscular - Wrapped Chips: Peito, Costas, Ombros, Bíceps, Tríceps, Pernas, Glúteos, Panturrilha, Abdômen, Cardio */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Grupo Muscular ({muscleGroups.length})
+                      </Label>
+                      <span className="text-[11px] text-primary font-medium">
+                        {getMuscleGroupName(selectedMuscleGroup)}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                      {muscleGroups.map((group) => {
+                        const isSelected = selectedMuscleGroup === group;
+                        return (
+                          <button
+                            key={group}
+                            type="button"
+                            onClick={() => {
+                              setSelectedMuscleGroup(group);
+                              setExerciseSearchTerm('');
+                            }}
+                            className={cn(
+                              "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all active:scale-95",
+                              isSelected
+                                ? "bg-primary text-primary-foreground font-semibold shadow-sm shadow-primary/30 ring-2 ring-primary/30"
+                                : "bg-card border border-border/70 text-foreground/80 hover:bg-accent/20 hover:border-primary/40"
+                            )}
+                          >
+                            <span>{getMuscleGroupEmoji(group)}</span>
+                            <span>{getMuscleGroupName(group)}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
 
+                  {/* Card de seleção de exercícios */}
+                  <div className="rounded-xl border border-border/70 p-3 sm:p-4 space-y-3 bg-card/60">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-semibold">
+                        Exercícios de {getMuscleGroupName(selectedMuscleGroup)}
+                      </p>
+                      <span className="text-xs text-muted-foreground">
+                        {groupExercises.length} disponíveis
+                      </span>
+                    </div>
+
+                    {/* Adicionar exercício manual */}
                     <div className="flex items-center gap-2">
                       <Input
                         value={builderCustomExerciseName}
                         onChange={(e) => setBuilderCustomExerciseName(e.target.value)}
-                        placeholder="Adicionar exercicio manual"
+                        placeholder={`Exercício personalizado (${getMuscleGroupName(selectedMuscleGroup)})...`}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addCustomExerciseToBuilder();
+                          }
+                        }}
+                        className="text-xs sm:text-sm"
                       />
-                      <Button type="button" onClick={addCustomExerciseToBuilder} className="shrink-0">
-                        <Plus className="w-4 h-4" />
+                      <Button type="button" onClick={addCustomExerciseToBuilder} className="shrink-0" size="sm">
+                        <Plus className="w-4 h-4 mr-1" />
+                        Adicionar
                       </Button>
                     </div>
 
-                    <div className="space-y-2 max-h-44 overflow-y-auto">
-                      {groupExercises.map((exercise) => (
-                        <button
-                          key={exercise.name}
-                          onClick={() => addExerciseToBuilder(exercise)}
-                          className="w-full rounded-lg border border-border/70 px-3 py-2 text-left text-sm hover:bg-accent/20"
-                        >
-                          <p className="truncate">{exercise.name}</p>
-                        </button>
-                      ))}
+                    {/* Filtro rápido se houver muitos exercícios */}
+                    {groupExercises.length > 4 && (
+                      <Input
+                        value={exerciseSearchTerm}
+                        onChange={(e) => setExerciseSearchTerm(e.target.value)}
+                        placeholder={`Filtrar exercícios de ${getMuscleGroupName(selectedMuscleGroup)}...`}
+                        className="h-8 text-xs bg-background/50"
+                      />
+                    )}
+
+                    {/* Lista da biblioteca */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-48 overflow-y-auto pr-1">
+                      {groupExercises
+                        .filter((ex) =>
+                          !exerciseSearchTerm || ex.name.toLowerCase().includes(exerciseSearchTerm.toLowerCase())
+                        )
+                        .map((exercise) => {
+                          const isAdded = builderExercises.some((item) => item.name === exercise.name);
+                          return (
+                            <button
+                              key={exercise.name}
+                              type="button"
+                              onClick={() => toggleExerciseInBuilder(exercise)}
+                              className={cn(
+                                "w-full rounded-lg border px-2.5 py-2 text-left text-xs transition-all flex items-center justify-between gap-2 active:scale-98",
+                                isAdded
+                                  ? "border-primary/50 bg-primary/10 text-primary font-medium"
+                                  : "border-border/70 bg-card/80 hover:bg-accent/20 hover:border-primary/30"
+                              )}
+                            >
+                              <span className="truncate">{exercise.name}</span>
+                              <span className="text-[10px] shrink-0 text-muted-foreground font-mono flex items-center gap-1">
+                                {isAdded ? (
+                                  <>
+                                    <Check className="w-3 h-3 text-primary" />
+                                    Adicionado
+                                  </>
+                                ) : (
+                                  `${exercise.sets}x${exercise.reps}`
+                                )}
+                              </span>
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </div>
+
+                  {/* Exercícios selecionados e configuração */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                        Exercícios no Treino ({builderExercises.length})
+                      </p>
+                      {builderExercises.length > 0 && (
+                        <span className="text-[11px] text-muted-foreground">
+                          Ajuste séries, reps e descanso
+                        </span>
+                      )}
                     </div>
 
-                    {builderExercises.length > 0 && (
+                    {builderExercises.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-border/80 p-4 text-center text-xs text-muted-foreground">
+                        Nenhum exercício selecionado ainda. Toque nos exercícios acima para adicioná-los ao treino.
+                      </div>
+                    ) : (
                       <div className="space-y-2">
-                        <p className="text-xs font-semibold text-muted-foreground">
-                          Exercicios selecionados ({builderExercises.length})
-                        </p>
                         {builderExercises.map((exercise, index) => (
-                          <div key={exercise.id} className="rounded-lg border border-border/70 p-2 min-w-0">
-                            <div className="flex items-center justify-between gap-2 mb-2">
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium truncate">{exercise.name}</p>
+                          <div
+                            key={exercise.id}
+                            className="rounded-xl border border-border/70 bg-card/80 p-2.5 space-y-2 shadow-xs"
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="min-w-0 flex items-center gap-1.5">
+                                <span className="text-xs">{getMuscleGroupEmoji(exercise.muscleGroup)}</span>
+                                <p className="text-xs sm:text-sm font-semibold truncate text-foreground">
+                                  {exercise.name}
+                                </p>
                               </div>
-                              <div className="flex items-center gap-1 shrink-0">
-                                <Button variant="ghost" size="icon-sm" onClick={() => moveBuilderExercise(index, 'up')}>
-                                  <ArrowUp className="w-4 h-4" />
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={() => moveBuilderExercise(index, 'up')}
+                                  disabled={index === 0}
+                                  title="Mover para cima"
+                                >
+                                  <ArrowUp className="w-3.5 h-3.5" />
                                 </Button>
-                                <Button variant="ghost" size="icon-sm" onClick={() => moveBuilderExercise(index, 'down')}>
-                                  <ArrowDown className="w-4 h-4" />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={() => moveBuilderExercise(index, 'down')}
+                                  disabled={index === builderExercises.length - 1}
+                                  title="Mover para baixo"
+                                >
+                                  <ArrowDown className="w-3.5 h-3.5" />
                                 </Button>
-                                <Button variant="ghost" size="icon-sm" onClick={() => removeBuilderExercise(exercise.id)}>
-                                  <Trash2 className="w-4 h-4" />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon-sm"
+                                  onClick={() => removeBuilderExercise(exercise.id)}
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  title="Remover"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
                                 </Button>
                               </div>
                             </div>
 
-                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                            <div className="grid grid-cols-3 gap-2">
                               <div>
-                                <Label className="text-[10px] text-muted-foreground">Series</Label>
+                                <Label className="text-[10px] text-muted-foreground block mb-0.5">Séries</Label>
                                 <Input
                                   type="number"
                                   min={1}
                                   value={exercise.sets}
-                                  onChange={(e) => updateBuilderExercise(exercise.id, { sets: parseInt(e.target.value) || 1 })}
+                                  onChange={(e) =>
+                                    updateBuilderExercise(exercise.id, { sets: parseInt(e.target.value) || 1 })
+                                  }
+                                  className="h-8 text-xs text-center"
                                 />
                               </div>
                               <div>
-                                <Label className="text-[10px] text-muted-foreground">Reps</Label>
+                                <Label className="text-[10px] text-muted-foreground block mb-0.5">Reps</Label>
                                 <Input
                                   value={exercise.reps}
-                                  onChange={(e) => updateBuilderExercise(exercise.id, { reps: e.target.value })}
+                                  onChange={(e) =>
+                                    updateBuilderExercise(exercise.id, { reps: e.target.value })
+                                  }
+                                  className="h-8 text-xs text-center"
                                 />
                               </div>
                               <div>
-                                <Label className="text-[10px] text-muted-foreground">Desc (s)</Label>
+                                <Label className="text-[10px] text-muted-foreground block mb-0.5">Desc (s)</Label>
                                 <Input
                                   type="number"
                                   min={0}
+                                  step={5}
                                   value={exercise.restTime}
-                                  onChange={(e) => updateBuilderExercise(exercise.id, { restTime: parseInt(e.target.value) || 0 })}
+                                  onChange={(e) =>
+                                    updateBuilderExercise(exercise.id, {
+                                      restTime: parseInt(e.target.value) || 0,
+                                    })
+                                  }
+                                  className="h-8 text-xs text-center"
                                 />
                               </div>
                             </div>
@@ -494,11 +726,26 @@ export function Workouts() {
                         ))}
                       </div>
                     )}
-
-                    <Button onClick={handleCreateCustomWorkout} className="w-full bg-primary hover:bg-primary/90">
-                      Salvar treino personalizado
-                    </Button>
                   </div>
+                </div>
+
+                <div className="p-3 sm:p-4 border-t border-border/70 bg-background/95 backdrop-blur-xs shrink-0 flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowAddDialog(false)}
+                    className="flex-1"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleCreateCustomWorkout}
+                    disabled={builderExercises.length === 0}
+                    className="flex-1 bg-primary hover:bg-primary/90 font-semibold"
+                  >
+                    Salvar treino ({builderExercises.length})
+                  </Button>
                 </div>
               </DialogContent>
             </Dialog>
