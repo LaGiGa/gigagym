@@ -3,10 +3,13 @@
 import { useState, useEffect } from 'react';
 import {
   Play,
+  Pause,
   RotateCcw,
   Timer,
   ChevronLeft,
-  Trophy
+  Trophy,
+  CheckCircle2,
+  Eye
 } from 'lucide-react';
 import { PageContainer } from '@/components/layout/PageContainer';
 import { ExerciseItem } from '@/components/custom/ExerciseItem';
@@ -17,6 +20,7 @@ import { useWorkout } from '@/hooks/useWorkout';
 import type { DayOfWeek } from '@/types';
 import { getDayName, getMuscleGroupEmoji } from '@/utils/calculations';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface WorkoutChecklistProps {
   day?: DayOfWeek;
@@ -29,7 +33,8 @@ export function WorkoutChecklist({ day = 'segunda', onBack }: WorkoutChecklistPr
     toggleExerciseCompletion,
     updateExerciseSet,
     markWorkoutAsComplete,
-    startWorkout
+    startWorkout,
+    resetWorkout
   } = useWorkout();
 
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -49,12 +54,6 @@ export function WorkoutChecklist({ day = 'segunda', onBack }: WorkoutChecklistPr
     return () => clearInterval(interval);
   }, [isTimerRunning]);
 
-  useEffect(() => {
-    if (workout?.status === 'em_andamento' && !isTimerRunning) {
-      setIsTimerRunning(true);
-    }
-  }, [workout?.status, isTimerRunning]);
-
   if (!workout) {
     return (
       <PageContainer>
@@ -68,6 +67,8 @@ export function WorkoutChecklist({ day = 'segunda', onBack }: WorkoutChecklistPr
     );
   }
 
+  const isStarted = workout.status === 'em_andamento';
+  const isCompleted = workout.status === 'concluido';
   const completedExercises = workout.exercises.filter(ex => ex.completed).length;
   const totalExercises = workout.exercises.length;
   const progress = totalExercises > 0 ? (completedExercises / totalExercises) * 100 : 0;
@@ -80,11 +81,26 @@ export function WorkoutChecklist({ day = 'segunda', onBack }: WorkoutChecklistPr
   const handleStartWorkout = () => {
     startWorkout(day);
     setIsTimerRunning(true);
+    toast.success('Treino iniciado! Cronômetro rodando.');
+  };
+
+  const handleToggleTimer = () => {
+    setIsTimerRunning(prev => !prev);
   };
 
   const handleCompleteWorkout = () => {
     markWorkoutAsComplete(day);
     setIsTimerRunning(false);
+    toast.success('Parabéns! Treino finalizado com sucesso.');
+  };
+
+  const handleResetWorkout = () => {
+    if (confirm('Deseja reiniciar este treino? As séries marcadas e o tempo serão zerados.')) {
+      resetWorkout(day);
+      setIsTimerRunning(false);
+      setElapsedTime(0);
+      toast.info('Treino reiniciado.');
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -96,84 +112,139 @@ export function WorkoutChecklist({ day = 'segunda', onBack }: WorkoutChecklistPr
   return (
     <PageContainer hasBottomNav={false}>
       {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
-        <button
-          onClick={onBack}
-          className="p-2 -ml-2 rounded-xl hover:bg-accent transition-colors"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <h2 className="text-xl font-bold">{workout.name}</h2>
-          <p className="text-sm text-muted-foreground">{getDayName(day)}</p>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onBack}
+            className="p-2 -ml-2 rounded-xl hover:bg-accent transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h2 className="text-xl font-bold">{workout.name}</h2>
+            <p className="text-xs text-muted-foreground">{getDayName(day)}</p>
+          </div>
         </div>
+
+        {workout.status === 'nao_iniciado' && (
+          <span className="flex items-center gap-1 text-[11px] font-semibold bg-muted/70 text-muted-foreground px-2.5 py-1 rounded-full border border-border/60">
+            <Eye className="w-3.5 h-3.5 text-primary" />
+            Visualização
+          </span>
+        )}
       </div>
 
       {/* Status Card */}
       <Card className={cn(
-        'p-4 mb-4',
-        workout.status === 'concluido' && 'bg-lime-500/10 border-lime-500/30',
-        workout.status === 'em_andamento' && 'bg-amber-500/10 border-amber-500/30'
+        'p-4 mb-4 border transition-all duration-300',
+        isCompleted && 'bg-primary/10 border-primary/30',
+        isStarted && 'bg-amber-500/10 border-amber-500/30',
+        workout.status === 'nao_iniciado' && 'bg-card/70 border-border/70'
       )}>
         <div className="flex items-center gap-4">
-          <ProgressRing progress={progress} size={80} strokeWidth={6}>
-            <span className="text-xl font-bold">{Math.round(progress)}%</span>
+          <ProgressRing progress={progress} size={76} strokeWidth={6}>
+            <span className="text-lg font-bold">{Math.round(progress)}%</span>
           </ProgressRing>
 
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="text-2xl">{getMuscleGroupEmoji(workout.muscleGroup)}</span>
               <div>
-                <p className="font-medium">{completedExercises}/{totalExercises} exercícios</p>
-                <p className="text-sm text-muted-foreground">
-                  {workout.status === 'nao_iniciado' && 'Não iniciado'}
-                  {workout.status === 'em_andamento' && 'Em andamento'}
-                  {workout.status === 'concluido' && 'Concluído!'}
+                <p className="font-semibold text-sm">{completedExercises}/{totalExercises} exercícios feitos</p>
+                <p className="text-xs text-muted-foreground">
+                  {workout.status === 'nao_iniciado' && 'Treino pronto para iniciar'}
+                  {workout.status === 'em_andamento' && 'Treino em andamento'}
+                  {workout.status === 'concluido' && 'Treino concluído!'}
                 </p>
               </div>
             </div>
 
-            {isTimerRunning && (
-              <div className="flex items-center gap-2 mt-2 text-amber-500">
-                <Timer className="w-4 h-4" />
-                <span className="font-mono font-medium">{formatTime(elapsedTime)}</span>
+            {/* Cronômetro */}
+            <div className="flex items-center gap-3 mt-2">
+              <div className={cn(
+                'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-bold',
+                isStarted && isTimerRunning && 'bg-amber-500/20 text-amber-500',
+                isStarted && !isTimerRunning && 'bg-muted text-muted-foreground',
+                !isStarted && 'bg-muted/50 text-muted-foreground'
+              )}>
+                <Timer className="w-3.5 h-3.5" />
+                <span>{formatTime(elapsedTime)}</span>
+                {isStarted && (
+                  <span className="text-[10px] ml-1 opacity-80">
+                    {isTimerRunning ? '(Rodando)' : '(Pausado)'}
+                  </span>
+                )}
               </div>
-            )}
+
+              {isStarted && (
+                <button
+                  type="button"
+                  onClick={handleToggleTimer}
+                  className="flex items-center gap-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground p-1 rounded transition-colors"
+                >
+                  {isTimerRunning ? (
+                    <>
+                      <Pause className="w-3.5 h-3.5" /> Pausar
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-3.5 h-3.5 text-primary" /> Retomar
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </Card>
 
-      {/* Ações */}
+      {/* Ação Primária: Iniciar Treino quando não iniciado */}
       {workout.status === 'nao_iniciado' && (
-        <Button
-          onClick={handleStartWorkout}
-          className="w-full mb-4 bg-lime-500 hover:bg-lime-600 h-12"
-        >
-          <Play className="w-5 h-5 mr-2" />
-          Iniciar Treino
-        </Button>
+        <Card className="p-3 mb-4 bg-gradient-to-r from-primary/15 via-primary/5 to-transparent border-primary/30 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-foreground">Pronto para começar?</p>
+            <p className="text-[11px] text-muted-foreground">O cronômetro começará a contar assim que você clicar.</p>
+          </div>
+          <Button
+            onClick={handleStartWorkout}
+            size="sm"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shrink-0 shadow-md shadow-primary/20 gap-1.5"
+          >
+            <Play className="w-4 h-4 fill-current" />
+            Iniciar Treino
+          </Button>
+        </Card>
       )}
 
-      {workout.status === 'em_andamento' && allCompleted && (
-        <Button
-          onClick={handleCompleteWorkout}
-          className="w-full mb-4 bg-lime-500 hover:bg-lime-600 h-12"
-        >
-          <Trophy className="w-5 h-5 mr-2" />
-          Finalizar Treino
-        </Button>
+      {/* Ação de Conclusão quando em andamento */}
+      {workout.status === 'em_andamento' && (
+        <div className="mb-4 flex gap-2">
+          <Button
+            onClick={handleCompleteWorkout}
+            className={cn(
+              "flex-1 h-12 font-bold transition-all shadow-md",
+              allCompleted
+                ? "bg-primary hover:bg-primary/90 text-primary-foreground shadow-primary/20"
+                : "bg-muted-foreground/20 hover:bg-primary hover:text-primary-foreground text-foreground"
+            )}
+          >
+            <CheckCircle2 className="w-4 h-4 mr-2" />
+            {allCompleted ? 'Finalizar Treino Completo ✨' : 'Concluir Treino de Hoje'}
+          </Button>
+        </div>
       )}
 
+      {/* Feedback de Treino Concluído */}
       {workout.status === 'concluido' && (
-        <Card className="p-4 mb-4 bg-lime-500/10 border-lime-500/30">
+        <Card className="p-4 mb-4 bg-primary/10 border-primary/30">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-lime-500 flex items-center justify-center">
-              <Trophy className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+              <Trophy className="w-5 h-5 text-primary-foreground" />
             </div>
             <div>
-              <p className="font-bold text-lg">Treino Concluído!</p>
-              <p className="text-sm text-muted-foreground">
-                Duração: {formatTime(elapsedTime)}
+              <p className="font-bold text-sm text-foreground">Treino Concluído com Sucesso!</p>
+              <p className="text-xs text-muted-foreground">
+                Tempo total registrado: {formatTime(elapsedTime || 2400)}
               </p>
             </div>
           </div>
@@ -182,7 +253,11 @@ export function WorkoutChecklist({ day = 'segunda', onBack }: WorkoutChecklistPr
 
       {/* Lista de exercícios */}
       <div className="mb-4">
-        <h3 className="text-lg font-semibold mb-3">Exercícios</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Exercícios do Treino</h3>
+          <span className="text-xs text-muted-foreground">{totalExercises} totais</span>
+        </div>
+
         <div className="space-y-2">
           {workout.exercises.map((exercise) => (
             <ExerciseItem
@@ -198,25 +273,20 @@ export function WorkoutChecklist({ day = 'segunda', onBack }: WorkoutChecklistPr
         </div>
       </div>
 
-      {/* Reset button */}
+      {/* Botão de Reset/Reiniciar */}
       {workout.status !== 'nao_iniciado' && (
         <Button
           variant="outline"
-          onClick={() => {
-            if (confirm('Tem certeza que deseja reiniciar este treino?')) {
-              startWorkout(day);
-              setElapsedTime(0);
-            }
-          }}
-          className="w-full"
+          onClick={handleResetWorkout}
+          className="w-full border-border/70 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 text-xs text-muted-foreground mb-4"
         >
-          <RotateCcw className="w-4 h-4 mr-2" />
-          Reiniciar Treino
+          <RotateCcw className="w-3.5 h-3.5 mr-2" />
+          Reiniciar Treino (Zerar progresso deste dia)
         </Button>
       )}
 
-      {/* Espaço extra no final */}
-      <div className="h-8" />
+      {/* Espaço extra no final para scroll */}
+      <div className="h-10" />
     </PageContainer>
   );
 }

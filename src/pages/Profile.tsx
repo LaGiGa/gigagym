@@ -99,9 +99,9 @@ export function Profile() {
       const text = await file.text();
       setImportData(text);
       setSelectedImportFileName(file.name);
-      toast.success('Arquivo carregado. Agora confirme a importação.');
+      toast.success('Arquivo carregado. Agora confirme a importaï¿½ï¿½o.');
     } catch {
-      toast.error('Não foi possível ler o arquivo selecionado.');
+      toast.error('Nï¿½o foi possï¿½vel ler o arquivo selecionado.');
     }
   };
 
@@ -122,10 +122,10 @@ export function Profile() {
         setSelectedImportFileName('');
         setTimeout(() => window.location.reload(), 1000);
       } else {
-        toast.error('O formato do arquivo é inválido.');
+        toast.error('O formato do arquivo ï¿½ invï¿½lido.');
       }
     } catch {
-      toast.error('JSON inválido.');
+      toast.error('JSON invï¿½lido.');
     }
   };
 
@@ -302,8 +302,6 @@ export function Profile() {
           <Button variant="destructive" onClick={handleReset} className="w-full"><Trash2 className="w-4 h-4 mr-2" />Apagar Todos os Dados</Button>
         </Card>
       </div>
-
-      <p className="text-center text-xs text-muted-foreground pb-4">By LaÃ©rcio v1.1.0 â€¢ Groq Inside</p>
     </PageContainer>
   );
 }

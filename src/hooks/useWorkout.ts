@@ -7,7 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { enrichExerciseWithSets } from '@/utils/planGenerator';
 
 export function useWorkout() {
-  const { state, setWorkoutForDay, completeWorkout, updateExerciseCompletion, updateExerciseSet, resetWeeklyProgress } = useApp();
+  const { state, setWorkoutForDay, completeWorkout, updateExerciseCompletion, updateExerciseSet, resetWorkoutForDay, resetWeeklyProgress } = useApp();
 
   /**
    * Cria um novo treino
@@ -162,19 +162,22 @@ export function useWorkout() {
    */
   const startWorkout = useCallback((day: DayOfWeek) => {
     const workout = state.weeklyWorkouts[day];
-    if (workout && (workout.status === 'nao_iniciado' || workout.status === 'em_andamento')) {
+    if (workout) {
       const needsEnrichment = workout.exercises.some(ex => !ex.sets_log || ex.sets_log.length === 0);
+      const exercises = needsEnrichment
+        ? workout.exercises.map(ex => (ex.sets_log && ex.sets_log.length > 0 ? ex : enrichExerciseWithSets(ex)))
+        : workout.exercises;
 
-      if (needsEnrichment) {
-        const enrichedExercises = workout.exercises.map(ex =>
-          ex.sets_log && ex.sets_log.length > 0 ? ex : enrichExerciseWithSets(ex)
-        );
-        setWorkoutForDay(day, { ...workout, status: 'em_andamento', exercises: enrichedExercises });
-      } else if (workout.status === 'nao_iniciado') {
-        setWorkoutForDay(day, { ...workout, status: 'em_andamento' });
-      }
+      setWorkoutForDay(day, { ...workout, status: 'em_andamento', exercises });
     }
   }, [state.weeklyWorkouts, setWorkoutForDay]);
+
+  /**
+   * Reinicia o treino de um dia (volta para nao_iniciado e desmarca séries)
+   */
+  const resetWorkout = useCallback((day: DayOfWeek) => {
+    resetWorkoutForDay(day);
+  }, [resetWorkoutForDay]);
 
   /**
    * Obtém estatísticas da semana
@@ -230,6 +233,7 @@ export function useWorkout() {
     toggleExerciseCompletion,
     markWorkoutAsComplete,
     startWorkout,
+    resetWorkout,
     resetWeeklyProgress,
     getWeeklyStats,
     hasWorkout,

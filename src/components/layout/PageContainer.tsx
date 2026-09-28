@@ -9,6 +9,7 @@ interface PageContainerProps {
   hasHeader?: boolean;
   hasBottomNav?: boolean;
   scrollable?: boolean;
+  showFooter?: boolean;
 }
 
 export function PageContainer({
@@ -16,7 +17,8 @@ export function PageContainer({
   className,
   hasHeader = true,
   hasBottomNav = true,
-  scrollable = true
+  scrollable = true,
+  showFooter = true,
 }: PageContainerProps) {
   return (
     <div
@@ -36,6 +38,13 @@ export function PageContainer({
     >
       <div className="mx-auto w-full max-w-xl px-4 py-5 sm:px-5">
         {children}
+        {showFooter && (
+          <footer className="mt-8 pb-4 text-center">
+            <p className="text-xs text-muted-foreground">
+              Desenvolvido por Laércio Avelino • v2.0.0
+            </p>
+          </footer>
+        )}
       </div>
     </div>
   );

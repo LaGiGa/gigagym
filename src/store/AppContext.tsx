@@ -93,7 +93,11 @@ type Action =
   | { type: 'COMPLETE_WORKOUT'; payload: { day: DayOfWeek; workout: Workout } }
   | { type: 'UPDATE_EXERCISE_COMPLETION'; payload: { day: DayOfWeek; exerciseId: string; completed: boolean } }
   | { type: 'UPDATE_EXERCISE_SET'; payload: { day: DayOfWeek; exerciseId: string; setId: string; weight: number; reps: number; completed: boolean } }
-  | { type: 'SET_CURRENT_PLAN'; payload: SmartPlan }
+  | { type: 'SET_CURRENT_PLAN'; payload: SmartPlan | null }
+  | { type: 'UPDATE_PLAN_WATER'; payload: number }
+  | { type: 'TOGGLE_PLAN_MEAL'; payload: string }
+  | { type: 'TOGGLE_PLAN_SUPPLEMENT'; payload: string }
+  | { type: 'RESET_WORKOUT_FOR_DAY'; payload: DayOfWeek }
   | { type: 'RESET_WEEKLY_PROGRESS' };
 
 function appReducer(state: AppState, action: Action): AppState {
@@ -188,12 +192,26 @@ function appReducer(state: AppState, action: Action): AppState {
         ex.id === action.payload.exerciseId ? { ...ex, completed: action.payload.completed } : ex
       );
 
-      const allCompleted = updatedExercises.every((ex) => ex.completed);
+      const anyCompleted = updatedExercises.some((ex) => ex.completed);
+      const allCompleted = updatedExercises.length > 0 && updatedExercises.every((ex) => ex.completed);
+
+      let newStatus = workout.status || 'nao_iniciado';
+      if (allCompleted) {
+        newStatus = 'concluido';
+      } else if (anyCompleted) {
+        newStatus = 'em_andamento';
+      } else {
+        // Se desmarcou tudo e nenhuma série foi concluída, volta para não iniciado
+        const anySetDone = updatedExercises.some((ex) => (ex.sets_log || []).some((s) => s.completed));
+        if (!anySetDone) {
+          newStatus = 'nao_iniciado';
+        }
+      }
 
       const updatedWorkout: Workout = {
         ...workout,
         exercises: updatedExercises,
-        status: allCompleted ? 'concluido' : 'em_andamento',
+        status: newStatus,
       };
 
       return {
@@ -238,7 +256,18 @@ function appReducer(state: AppState, action: Action): AppState {
         };
       });
 
-      const allExercisesCompleted = updatedExercises.every((ex) => ex.completed);
+      const anyCompleted = updatedExercises.some((ex) => ex.completed || (ex.sets_log || []).some((s) => s.completed));
+      const allExercisesCompleted = updatedExercises.length > 0 && updatedExercises.every((ex) => ex.completed);
+
+      let newStatus = workout.status || 'nao_iniciado';
+      if (allExercisesCompleted) {
+        newStatus = 'concluido';
+      } else if (anyCompleted) {
+        newStatus = 'em_andamento';
+      } else {
+        // Nenhuma série ou exercício concluído
+        newStatus = 'nao_iniciado';
+      }
 
       return {
         ...state,
@@ -247,7 +276,7 @@ function appReducer(state: AppState, action: Action): AppState {
           [action.payload.day]: {
             ...workout,
             exercises: updatedExercises,
-            status: allExercisesCompleted ? 'concluido' : 'em_andamento',
+            status: newStatus,
           },
         },
       };
@@ -255,6 +284,74 @@ function appReducer(state: AppState, action: Action): AppState {
 
     case 'SET_CURRENT_PLAN':
       return { ...state, currentPlan: action.payload };
+
+    case 'UPDATE_PLAN_WATER': {
+      if (!state.currentPlan) return state;
+      const today = new Date().toISOString().slice(0, 10);
+      const currentConsumed = state.currentPlan.waterLogDate === today ? (state.currentPlan.waterConsumed || 0) : 0;
+      const newConsumed = Math.max(0, currentConsumed + action.payload);
+
+      return {
+        ...state,
+        currentPlan: {
+          ...state.currentPlan,
+          waterConsumed: newConsumed,
+          waterLogDate: today,
+        },
+      };
+    }
+
+    case 'TOGGLE_PLAN_MEAL': {
+      if (!state.currentPlan || !state.currentPlan.meals) return state;
+      const updatedMeals = state.currentPlan.meals.map((meal) =>
+        meal.id === action.payload ? { ...meal, completed: !meal.completed } : meal
+      );
+      return {
+        ...state,
+        currentPlan: {
+          ...state.currentPlan,
+          meals: updatedMeals,
+        },
+      };
+    }
+
+    case 'TOGGLE_PLAN_SUPPLEMENT': {
+      if (!state.currentPlan || !state.currentPlan.supplements) return state;
+      const updatedSupps = state.currentPlan.supplements.map((supp) =>
+        supp.id === action.payload ? { ...supp, takenToday: !supp.takenToday } : supp
+      );
+      return {
+        ...state,
+        currentPlan: {
+          ...state.currentPlan,
+          supplements: updatedSupps,
+        },
+      };
+    }
+
+    case 'RESET_WORKOUT_FOR_DAY': {
+      const workout = state.weeklyWorkouts[action.payload];
+      if (!workout) return state;
+
+      const resetWorkout: Workout = {
+        ...workout,
+        status: 'nao_iniciado',
+        completedAt: undefined,
+        exercises: workout.exercises.map((ex) => ({
+          ...ex,
+          completed: false,
+          sets_log: (ex.sets_log || []).map((s) => ({ ...s, completed: false })),
+        })),
+      };
+
+      return {
+        ...state,
+        weeklyWorkouts: {
+          ...state.weeklyWorkouts,
+          [action.payload]: resetWorkout,
+        },
+      };
+    }
 
     case 'RESET_WEEKLY_PROGRESS': {
       const resetWorkouts: Record<DayOfWeek, Workout | null> = { ...state.weeklyWorkouts };
@@ -265,7 +362,11 @@ function appReducer(state: AppState, action: Action): AppState {
           resetWorkouts[day] = {
             ...workout,
             status: 'nao_iniciado',
-            exercises: workout.exercises.map((ex) => ({ ...ex, completed: false })),
+            exercises: workout.exercises.map((ex) => ({
+              ...ex,
+              completed: false,
+              sets_log: (ex.sets_log || []).map((s) => ({ ...s, completed: false })),
+            })),
             completedAt: undefined,
           };
         }
@@ -296,7 +397,12 @@ interface AppContextType {
   completeWorkout: (day: DayOfWeek, workout: Workout) => void;
   updateExerciseCompletion: (day: DayOfWeek, exerciseId: string, completed: boolean) => void;
   updateExerciseSet: (day: DayOfWeek, exerciseId: string, setId: string, weight: number, reps: number, completed: boolean) => void;
-  setCurrentPlan: (plan: SmartPlan) => void;
+  setCurrentPlan: (plan: SmartPlan | null) => void;
+  clearCurrentPlan: () => void;
+  updatePlanWater: (amountMl: number) => void;
+  togglePlanMeal: (mealId: string) => void;
+  togglePlanSupplement: (supplementId: string) => void;
+  resetWorkoutForDay: (day: DayOfWeek) => void;
   resetWeeklyProgress: () => void;
   resetAllData: () => void;
   loadSavedData: () => void;
@@ -316,12 +422,27 @@ export function AppProvider({ children }: AppProviderProps) {
   const [lastLocalSaveAt, setLastLocalSaveAt] = useState<string | null>(null);
 
   const normalizeLoadedState = useCallback((loaded: Partial<AppState>): AppState => {
+    const rawWeekly = { ...initialState.weeklyWorkouts, ...(loaded.weeklyWorkouts || {}) };
+    const sanitizedWeekly = { ...rawWeekly };
+
+    (Object.keys(sanitizedWeekly) as DayOfWeek[]).forEach((day) => {
+      const w = sanitizedWeekly[day];
+      if (w && w.status === 'em_andamento') {
+        const hasAnyProgress = w.exercises?.some(
+          (ex) => ex.completed || (ex.sets_log || []).some((s) => s.completed)
+        );
+        if (!hasAnyProgress) {
+          sanitizedWeekly[day] = { ...w, status: 'nao_iniciado' };
+        }
+      }
+    });
+
     return {
       ...initialState,
       ...loaded,
       profile: { ...initialState.profile, ...(loaded.profile || {}) },
       settings: { ...initialState.settings, ...(loaded.settings || {}) },
-      weeklyWorkouts: { ...initialState.weeklyWorkouts, ...(loaded.weeklyWorkouts || {}) },
+      weeklyWorkouts: sanitizedWeekly,
       workoutHistory: loaded.workoutHistory || [],
       weightHistory: loaded.weightHistory || [],
       bodyMetrics: { ...initialState.bodyMetrics, ...(loaded.bodyMetrics || {}) },
@@ -439,8 +560,28 @@ export function AppProvider({ children }: AppProviderProps) {
     dispatch({ type: 'UPDATE_EXERCISE_SET', payload: { day, exerciseId, setId, weight, reps, completed } });
   };
 
-  const setCurrentPlan = (plan: SmartPlan) => {
+  const setCurrentPlan = (plan: SmartPlan | null) => {
     dispatch({ type: 'SET_CURRENT_PLAN', payload: plan });
+  };
+
+  const clearCurrentPlan = () => {
+    dispatch({ type: 'SET_CURRENT_PLAN', payload: null });
+  };
+
+  const updatePlanWater = (amountMl: number) => {
+    dispatch({ type: 'UPDATE_PLAN_WATER', payload: amountMl });
+  };
+
+  const togglePlanMeal = (mealId: string) => {
+    dispatch({ type: 'TOGGLE_PLAN_MEAL', payload: mealId });
+  };
+
+  const togglePlanSupplement = (supplementId: string) => {
+    dispatch({ type: 'TOGGLE_PLAN_SUPPLEMENT', payload: supplementId });
+  };
+
+  const resetWorkoutForDay = (day: DayOfWeek) => {
+    dispatch({ type: 'RESET_WORKOUT_FOR_DAY', payload: day });
   };
 
   const resetWeeklyProgress = () => {
@@ -467,6 +608,11 @@ export function AppProvider({ children }: AppProviderProps) {
     updateExerciseCompletion,
     updateExerciseSet,
     setCurrentPlan,
+    clearCurrentPlan,
+    updatePlanWater,
+    togglePlanMeal,
+    togglePlanSupplement,
+    resetWorkoutForDay,
     resetWeeklyProgress,
     resetAllData,
     loadSavedData: () => {

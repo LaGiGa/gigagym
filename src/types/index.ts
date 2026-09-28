@@ -81,6 +81,59 @@ export interface SpecialistSuggestion {
   date: string;
 }
 
+export interface PlanMacroTargets {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  fiber?: number;
+}
+
+export interface PlanFoodItem {
+  id: string;
+  name: string;
+  portion: string;
+  calories?: number;
+  protein?: number;
+  carbs?: number;
+  fats?: number;
+}
+
+export interface PlanMeal {
+  id: string;
+  name: string;
+  time: string;
+  calories: number;
+  macros: {
+    protein: number;
+    carbs: number;
+    fats: number;
+  };
+  foods: PlanFoodItem[];
+  substitutions: string[];
+  completed?: boolean;
+}
+
+export type SupplementTiming = 'jejum' | 'pre_treino' | 'pos_treino' | 'noite' | 'refeicao';
+
+export interface PlanSupplement {
+  id: string;
+  name: string;
+  timing: SupplementTiming;
+  timingLabel: string;
+  dosage: string;
+  purpose: string;
+  takenToday?: boolean;
+}
+
+export interface PeriodizationPhase {
+  phase: number;
+  title: string;
+  duration: string;
+  focus: string;
+  active: boolean;
+}
+
 export interface SmartPlan {
   id: string;
   goal: TrainingGoal;
@@ -89,6 +142,13 @@ export interface SmartPlan {
   suggestions: SpecialistSuggestion[];
   diet?: string;
   supplementation?: string;
+  macroTargets?: PlanMacroTargets;
+  meals?: PlanMeal[];
+  supplements?: PlanSupplement[];
+  waterTarget?: number; // em ml
+  waterConsumed?: number; // em ml
+  waterLogDate?: string;
+  phases?: PeriodizationPhase[];
 }
 
 export type UserGender = 'masculino' | 'feminino';
